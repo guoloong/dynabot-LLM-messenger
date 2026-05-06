@@ -1,0 +1,57 @@
+{
+  "name": "HAIRegain",
+  "description": "HAIRegain is a natural formulation combining Oryza Polyamine rice germ, OMEGIA® Sea Buckthorn, Lalmin® Zn100 zinc-enriched nutritional yeast, L-Cystine and horsetail extract. It is designed to promote hair growth, improve hair texture and prevent hair loss.",
+  "benefits": [
+    "Improves hair growth, elasticity & texture",
+    "Prevents hair loss",
+    "Strengthens hair structure",
+    "Contains all vitamins & minerals for healthy hair maintenance",
+    "Extends hair follicle growth phase and strengthens hair roots",
+    "Provides Omega 3, 6, 7 and 9 for improved hair texture",
+    "Zinc acts as DHT blocker to prevent hair loss",
+    "L-Cystine increases hair volume and density",
+    "Horsetail extract stimulates hair growth through bioactive silica"
+  ],
+  "price": {
+    "singapore": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    },
+    "malaysia": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    }
+  },
+  "dosage": {
+    "therapeutic": "1 sachet daily mixed in 125ml water or juice (below 50°C)",
+    "maintenance": "1 sachet daily after meal",
+    "general": "Mix 1 sachet in 125ml (1/2 cup) water or juice"
+  },
+  "ingredients": [
+    "Oryza Polyamine rice germ powder",
+    "Omegia® whole sea buckthorn fruit powder",
+    "Passion fruit juice powder",
+    "Zinc-enriched nutritional yeast (Lalmin® Zn100)",
+    "Horsetail extract powder",
+    "L-Cystine",
+    "Stevia"
+  ],
+  "who_can_consume": "Both men and women struggling with thinning hair or hair loss.",
+  "who_cannot_consume": "Not specified. Consult a healthcare professional if pregnant, nursing, or have scalp conditions.",
+  "url": "https://www.dyna-nutrition.com/products/hairegain/",
+  "images": [
+    "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/Lazada-Hairegain.jpg"
+  ],
+  "qa": [
+    {
+      "question": "How long does it take to see results with HAIRegain?",
+      "answer": "Clinical studies show that Oryza Polyamine resulted in 87% improvement on hair texture in just 2 weeks. Sea Buckthorn studies showed almost 90% reported reductions in hair loss and over 78% reported improvements in hair thickness after 6 months."
+    },
+    {
+      "question": "Is HAIRegain suitable for both men and women?",
+      "answer": "Yes, HAIRegain is suitable for both men and women struggling with thinning hair. It contains natural ingredients that support hair growth and health for all genders."
+    }
+  ]
+}

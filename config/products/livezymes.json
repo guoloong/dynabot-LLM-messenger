@@ -1,0 +1,58 @@
+{
+  "name": "VesPro LiveZymes",
+  "description": "LiveZymes is a delicious botanical digestive enzyme beverage in cold spray dried powder form. Produced from 12 different types of fresh food and fruits using advance cold spray drying equipment from Germany with high colloidal mineral glacier water from Mount Rainier USA.",
+  "benefits": [
+    "Natural indigestion remedy and heartburn remedy",
+    "Reduces gas, bloating and stomach discomfort",
+    "Promotes rapid and immediate detoxification",
+    "Diminishes food allergies by effective protein digestion",
+    "Supports healthy weight loss (via lipase and protease enzymes)",
+    "Helps burn fat and eliminate toxins embedded in fats"
+  ],
+  "price": {
+    "singapore": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    },
+    "malaysia": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    }
+  },
+  "dosage": {
+    "therapeutic": "1 sachet mixed in 125ml water or juice (below 40°C) after food",
+    "maintenance": "1 sachet after main meals",
+    "general": "Mix 1 sachet in 125ml water or juice (below 40°C) after food"
+  },
+  "ingredients": [
+    "Papaya",
+    "Pineapple",
+    "Avocado",
+    "Almonds",
+    "Barley",
+    "Banana",
+    "Cucumber",
+    "Maize",
+    "Purple Grapes",
+    "Peas & Soy Bean",
+    "Malt"
+  ],
+  "who_can_consume": "Adults seeking digestive support, those with indigestion, gas, bloating, or constipation.",
+  "who_cannot_consume": "Not specified. Consult a healthcare professional if pregnant, nursing, or have specific health conditions.",
+  "url": "https://www.dyna-nutrition.com/products/livezymes/",
+  "images": [
+    "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/LAZADA-Livezyme.jpg"
+  ],
+  "qa": [
+    {
+      "question": "How many enzymes does LiveZymes contain?",
+      "answer": "LiveZymes contains 14 different types of digestive enzymes with specific potencies including Lipase (7000 DU), multiple Proteases, Alpha Amylase (10,000 SKB), Lactase (2000 ALU), and others. The fermentation process takes 14 days."
+    },
+    {
+      "question": "Why are digestive enzymes important?",
+      "answer": "Cooked food has zero enzymes, so your body must produce huge quantities of digestive enzymes, interrupting the production of metabolic enzymes needed for healthy elimination, nutrient assimilation, and tissue regeneration. Signs of enzyme deficiency include heartburn, gas, constipation, bloating, and chronic fatigue."
+    }
+  ]
+}

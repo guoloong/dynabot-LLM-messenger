@@ -1,0 +1,53 @@
+{
+  "name": "Black Elderberry Juice",
+  "description": "Dynamic Nutrition Black Elderberry Juice contains ElderCraft® European Black Elderberry Extract (Sambucus nigra L.), a clinically proven elderberry extract from Iprona AG, Italy. Combines aromatic creamy-white elderflowers and juicy black elderberries in a delicious juice blend.",
+  "benefits": [
+    "High levels of antioxidant bioflavanoids",
+    "Very high amounts of polyphenol anthocyanin",
+    "Helps diminish swelling in mucous membranes",
+    "Helps relieve nasal congestion",
+    "Clinically proven to inhibit growth of influenza A and B viruses",
+    "Effective against bacteria causing upper respiratory infections",
+    "Supports body's immune system against colds",
+    "Stabilizes overall health during long-haul flights"
+  ],
+  "price": {
+    "singapore": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    },
+    "malaysia": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    }
+  },
+  "dosage": {
+    "therapeutic": "1 sachet daily mixed in 150ml water (below 40°C)",
+    "maintenance": "1 sachet daily",
+    "general": "Mix 1 sachet in 150ml water (below 40°C)"
+  },
+  "ingredients": [
+    "Elderberry juice powder",
+    "Elderflower juice powder",
+    "ElderCraft® European Black Elderberry Extract (Sambucus nigra L.) 460mg",
+    "Stevia"
+  ],
+  "who_can_consume": "Children and adults seeking immune support during cold and flu season, those traveling.",
+  "who_cannot_consume": "Not specified. Consult a healthcare professional if pregnant, nursing, or allergic to elderberry or related plants.",
+  "url": "https://www.dyna-nutrition.com/products/black-elderberry-juice/",
+  "images": [
+    "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/LAZADA-Elderberry.jpg"
+  ],
+  "qa": [
+    {
+      "question": "What is ElderCraft® and how does it work?",
+      "answer": "ElderCraft® is a clinically proven black elderberry extract from Iprona AG, Italy. Each serving provides 460mg equivalent to 19.26g of fresh black elderberries. Iprona uses proprietary Polyphenol Technology (IPT) that separates substances by molecular size without chemicals or heat."
+    },
+    {
+      "question": "What clinical evidence supports Black Elderberry?",
+      "answer": "Clinical studies show inhibitory activity against influenza A and B viruses and respiratory bacteria. A Griffith University human clinical trial on 312 economy class passengers showed immune support during long-haul flights."
+    }
+  ]
+}

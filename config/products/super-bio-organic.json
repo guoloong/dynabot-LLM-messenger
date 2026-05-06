@@ -1,0 +1,55 @@
+{
+  "name": "Super Bio-Organic",
+  "description": "Super Bio-Organic is a combination of high quality golden grain husk plus a special blend of more than 30 types of organic seeds, vegetables, green foods, prebiotic, enzymes and chlorophyll. It provides balance nutrition, enhances immune system and eliminates internal toxins.",
+  "benefits": [
+    "Natural Constipation Remedy",
+    "Balance Nutrients for Total Well-Being",
+    "Prevent and Reduce Symptoms of Hemorrhoid",
+    "Support Cholesterol-Lowering Effect",
+    "Improve Digestion",
+    "Provide Relief From Irritable Bowel Syndrome (IBS)",
+    "Manage Body Weight",
+    "Improve Cardiovascular Health"
+  ],
+  "price": {
+    "singapore": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    },
+    "malaysia": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    }
+  },
+  "dosage": {
+    "therapeutic": "2-3 times daily: Add 1-2 scoops with 350ml lukewarm water, 30 min before meal",
+    "maintenance": "1-2 scoops daily",
+    "general": "Add 1-2 scoops with 350ml of lukewarm water or juices, drink before meals"
+  },
+  "ingredients": [
+    "Golden grain husk",
+    "Crimson lentils, White wheat, Red lentils, Black beluga lentils, Gold lentils, Red grains, Red wheat, Green lentils",
+    "Coicis seeds, Spinach, Mushroom, Peanuts, Carrots, Black sesame, Pumpkin seeds, Celery, Lotus seeds, Oats, Pine seeds",
+    "Lotus root powder, Flax seeds, Soya beans, Wild rice, Yam, Gingko, Wheat germ, Alfalfa, Fennel seeds, Asparagus, Artichoke",
+    "Spirulina, Chlorella, Wheat grass, Barley grass, Japanese green tea",
+    "Fructo-Oligosaccharide (FOS), Enzymes (Papain & Bromelain), Mulberry, Chlorophyll"
+  ],
+  "who_can_consume": "Adults and children seeking constipation relief, digestive support, or general wellness.",
+  "who_cannot_consume": "Not specified. Consult a healthcare professional if pregnant, nursing, or have specific health conditions.",
+  "url": "https://www.dyna-nutrition.com/products/super-bio-organic/",
+  "images": [
+    "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/LAZADA-SuperBio-Bottle.jpg"
+  ],
+  "qa": [
+    {
+      "question": "What are the different ways to use Super Bio-Organic?",
+      "answer": "For general health: 2-3 times daily. For meal replacement: 1-2 times or as needed. For slimming: Replace 1-2 meals to lose weight while maintaining nutrition. For detox: 3 times daily, half hour before breakfast, lunch and dinner."
+    },
+    {
+      "question": "How many ingredients does Super Bio-Organic contain?",
+      "answer": "Super Bio-Organic contains over 30 types of organic seeds, vegetables, green foods, prebiotic, enzymes and chlorophyll working synergistically to provide optimum nutritional values. It is a vegetarian formula with no added preservatives, coloring, sugar or salt."
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "name": "Vitamune CDZ",
+  "description": "Vitamune CDZ is an immunity booster beverage rich in Vitamin C, D and Zinc-enriched probiotics. It is a combination of Acerola, Camu Camu, Amla, Vitamin D3 & Zinc-enriched Bifidobacterium longum CCFM1195. This formulation works synergistically to form a protection layer against viral infection.",
+  "benefits": [
+    "Natural vitamin C, D, Zinc with probiotics",
+    "Organic zinc from zinc-enriched Bifidobacterium longum CCFM1195",
+    "High bioavailability",
+    "Protection against viral infection",
+    "Reduce severity of symptoms and complications during infection"
+  ],
+  "price": {
+    "singapore": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    },
+    "malaysia": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    }
+  },
+  "dosage": {
+    "therapeutic": "1 sachet daily mixed in 125ml water or juice (below 50°C)",
+    "maintenance": "1 sachet daily after meal",
+    "general": "Mix 1 sachet in 125ml (1/2 cup) water or juice"
+  },
+  "ingredients": [
+    "Acerola concentrate powder",
+    "Camu Camu concentrate powder",
+    "Amla concentrate powder",
+    "Vitamin D3",
+    "Zinc enriched friendly bacteria powder (Bifidobacterium longum CCFM1195)",
+    "Natural orange flavor",
+    "Stevia"
+  ],
+  "who_can_consume": "Adults and children seeking immune support, especially during cold and flu season.",
+  "who_cannot_consume": "Not specified. Consult a healthcare professional if pregnant, nursing, or immunocompromised.",
+  "url": "https://www.dyna-nutrition.com/products/vitamune-cdz/",
+  "images": [
+    "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/Lazada-Vitamune-.jpg"
+  ],
+  "qa": [
+    {
+      "question": "What is the difference between natural and synthetic Vitamin C?",
+      "answer": "Natural Vitamin C is extracted from whole foods (acerola berries, camu-camu, Amla) containing co-factors like bioflavonoids, rutin, Factor J, K, P, Tyrosinase, and Ascorbinogen. Synthetic Vitamin C is chemically manufactured from corn sugar where ascorbic acid is only a small fraction of the complete vitamin C complex."
+    },
+    {
+      "question": "Why combine Vitamin C, D & Zinc?",
+      "answer": "These nutrients work synergistically to strengthen the immune system. Zinc helps develop and activate T-lymphocytes, Vitamin D supports production of germ-fighting proteins, and Vitamin C helps fight bugs/viruses and can shorten cold duration and severity."
+    }
+  ]
+}

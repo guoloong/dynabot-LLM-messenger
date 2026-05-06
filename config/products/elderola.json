@@ -1,0 +1,51 @@
+{
+  "name": "Elderola Berries Chewable",
+  "description": "Elderola Berries Chewable is a combination of ElderCraft® black elderberries and acerola berries. ElderCraft® is a clinically proven black elderberry extract from Iprona AG, Italy. Acerola berries are rich in natural Vitamin C and powerful antioxidants.",
+  "benefits": [
+    "Strengthens immune health",
+    "Fight against colds and flu",
+    "Rich in whole food natural Vitamin C",
+    "Rich in whole food antioxidant",
+    "Anti-inflammation"
+  ],
+  "price": {
+    "singapore": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    },
+    "malaysia": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    }
+  },
+  "dosage": {
+    "therapeutic": "3-4 chewable tablets daily for adults",
+    "maintenance": "1-2 chewable tablets daily for children 2-12 years",
+    "general": "Chewable tablet format - take directly"
+  },
+  "ingredients": [
+    "Blackberry juice",
+    "Raspberry juice",
+    "Blueberry juice",
+    "Acerola Berries Extract 110mg",
+    "ElderCraft® European Black Elderberry Extract 110mg"
+  ],
+  "who_can_consume": "Kids (2-12 years) and adults seeking immune support.",
+  "who_cannot_consume": "Contains lactose. Not suitable for those with lactose intolerance.",
+  "url": "https://www.dyna-nutrition.com/products/elderola/",
+  "images": [
+    "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/LAZADA-elderola.jpg"
+  ],
+  "qa": [
+    {
+      "question": "What is the difference between Elderola and regular elderberry products?",
+      "answer": "Elderola uses ElderCraft®, a clinically proven black elderberry extract from Iprona AG, Italy. European black elderberry is distinguished for its high polyphenol content and high proportion of vitamins, minerals and trace elements. Each tablet is equivalent to 3.52g of fresh black elderberries."
+    },
+    {
+      "question": "Can children take Elderola?",
+      "answer": "Yes, Elderola is suitable for both kids (2-12 years) and adults. Children can take 1-2 chewable tablets daily while adults can take 3-4 tablets daily."
+    }
+  ]
+}

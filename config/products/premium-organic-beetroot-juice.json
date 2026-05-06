@@ -1,0 +1,47 @@
+{
+  "name": "Premium Organic Red Beet Crystals",
+  "description": "Premium Organic Beetroot Juice in crystal form made from freeze-dried organic red beet juice. Manufactured in Switzerland. The product is crystallized from pure organic beet root juice without maltodextrin. Naturally sweet and delicious, retaining all nutrients and goodness.",
+  "benefits": [
+    "High Nutritional Value with wide range of vitamins, minerals, and organic compounds",
+    "Improve Heart Health - reduces cholesterol and triglycerides, increases HDL",
+    "Improve Liver Health - betaines stimulate liver functions and detox",
+    "No Maltodextrin unlike powder forms",
+    "Versatile Usage - blends well with juices, milk products, cereals"
+  ],
+  "price": {
+    "singapore": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    },
+    "malaysia": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    }
+  },
+  "dosage": {
+    "therapeutic": "1 heaping tablespoon (about 10g) in a glass of water 2-4 times daily with meals",
+    "maintenance": "1 tablespoon daily",
+    "general": "Can be added to fruit juices, milk products, cereals or taken dry from spoon"
+  },
+  "ingredients": [
+    "Freeze dried premium organic red beet (beetroot) juice in crystal form"
+  ],
+  "who_can_consume": "Suitable for vegetarians and vegans, people with heart problems or high blood pressure, those seeking daily minerals and vitamins, individuals looking for liver health support.",
+  "who_cannot_consume": "Not specified. Consult a healthcare professional if pregnant, nursing, or have specific health conditions.",
+  "url": "https://www.dyna-nutrition.com/products/premium-organic-beetroot-juice/",
+  "images": [
+    "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/LAZADA-Redbeet.jpg"
+  ],
+  "qa": [
+    {
+      "question": "Why choose crystal form over powder?",
+      "answer": "Unlike powder forms, this crystal form contains no maltodextrin (starch-like powder). The 200g package is equivalent to 2.5 kg of fresh-pressed organic beets and instantly dissolves in water."
+    },
+    {
+      "question": "What are the health benefits of beetroot?",
+      "answer": "Red beet fiber helps reduce cholesterol and triglycerides by increasing HDL cholesterol (good cholesterol). Betaine lowers homocysteine levels harmful to blood vessels and helps prevent cardiovascular diseases, high blood pressure, heart attacks, and strokes. It also promotes liver cleansing and detox."
+    }
+  ]
+}

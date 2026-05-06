@@ -1,0 +1,50 @@
+{
+  "name": "Organic Volcanic Wheatgrass Juice Powder",
+  "description": "Organic wheatgrass uses BioActive Dehydration™, an ambient temperature spray drying process that dries products to powder at less than 41°C, preserving the color, flavor, aroma and nutrients. Volcanic soil is loaded with essential minerals containing over 70+ trace minerals.",
+  "benefits": [
+    "Highest source of chlorophyll",
+    "Rich in vitamins and minerals",
+    "Rich in protein (contains all essential amino acids)",
+    "Eliminate toxins",
+    "Boost metabolism",
+    "Prevent tooth decay",
+    "Build red blood cells",
+    "Purify liver"
+  ],
+  "price": {
+    "singapore": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    },
+    "malaysia": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    }
+  },
+  "dosage": {
+    "therapeutic": "1 teaspoon mixed with water (below 40°C), 1-2 times daily before meal",
+    "maintenance": "1 teaspoon daily before meal",
+    "general": "Mix with water below 40°C, preferably before meal"
+  },
+  "ingredients": [
+    "Organic Wheatgrass Juice Powder (Liquadry Inc., Utah, USA)"
+  ],
+  "who_can_consume": "Adults and children seeking to increase chlorophyll intake, detox support, or general wellness.",
+  "who_cannot_consume": "Not specified. Consult a healthcare professional if pregnant, nursing, or have specific health conditions.",
+  "url": "https://www.dyna-nutrition.com/products/wheatgrass/",
+  "images": [
+    "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/LAZADA-Wheatgrass.jpg"
+  ],
+  "qa": [
+    {
+      "question": "What is the difference between juice powder and whole powder?",
+      "answer": "Juice powders differ from whole plant powders in that after grinding, the fibrous, pulpy plant materials are filtered out and discarded – leaving just the juice, which is then dehydrated into a powder. This makes it easier for the body to digest and assimilate nutrients."
+    },
+    {
+      "question": "Why volcanic soil wheatgrass?",
+      "answer": "Volcanic soil is loaded with essential minerals that produce the most nutrient-dense crops. It contains over 70+ trace minerals that promote optimal growth and nutritional content of the green plants."
+    }
+  ]
+}

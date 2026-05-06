@@ -1,0 +1,51 @@
+{
+  "name": "Tibetan Seaberry (Omegia Sea Buckthorn)",
+  "description": "Tibetan Seaberry is an organic whole sea buckthorn fruit powder with Omega 3-6-7-9. Known as 'holy fruit' in Tibet, sea buckthorn contains over 190 nutrients and phytonutrients. Omegia is a unique standardized formula with balanced ratio of all unsaturated fatty acids.",
+  "benefits": [
+    "Supports healthy skin hydration/elasticity",
+    "Helps to reduce the appearance of wrinkles",
+    "Supports healthy vaginal tissue/moisture",
+    "Reduce symptoms of menopause",
+    "Helps alleviates dry eyes and dry mouth",
+    "Promotes heart health",
+    "Boost immune system",
+    "Rich in nutrients and powerful antioxidant (70X stronger than vitamin C)"
+  ],
+  "price": {
+    "singapore": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    },
+    "malaysia": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    }
+  },
+  "dosage": {
+    "therapeutic": "1 sachet per day, may consume directly or mix with water/beverages",
+    "maintenance": "1 sachet daily",
+    "general": "May consume directly from sachet or mix with water or beverages"
+  },
+  "ingredients": [
+    "Omegia whole sea buckthorn fruit powder (mixture of organic sea buckthorn juice and organic sea buckthorn oil)",
+    "Stevia"
+  ],
+  "who_can_consume": "Vegans seeking complete omega source, general consumers wanting immune support, skin health, and omega supplementation.",
+  "who_cannot_consume": "Not specified. Consult a healthcare professional if pregnant, nursing, or have specific health conditions.",
+  "url": "https://www.dyna-nutrition.com/products/tibetan-seaberry/",
+  "images": [
+    "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/LAZADA-Seaberry.jpg"
+  ],
+  "qa": [
+    {
+      "question": "What makes Omegia Sea Buckthorn special?",
+      "answer": "Omegia contains the highest known concentration of Omega 7 in the animal or plant kingdom. It contains over 190 nutrients and phytonutrients, high amounts of vitamins, minerals, fiber, and protein. Omega 7 is effective in preventing cardiovascular disease and cholesterol accumulation."
+    },
+    {
+      "question": "Is this suitable for vegans?",
+      "answer": "Yes, Tibetan Seaberry is a complete vegan omega source. It provides a balanced ratio of Omega-3, 6, 7, and 9 fatty acids from organic sources."
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "name": "LiveProtein",
+  "description": "LiveProtein is a blend of organic pumpkin seed protein, pea protein, and prebiotics (inulin) with high bioavailability and digestibility. It is a plant-based protein with a complete amino acid profile for daily needs without any major food allergens.",
+  "benefits": [
+    "Plant-Based Vegan Protein",
+    "Contains All Essential Amino Acids",
+    "Easily Digested",
+    "Gluten, Dairy & Soy Free",
+    "Hypoallergenic",
+    "Contains Prebiotic"
+  ],
+  "price": {
+    "singapore": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    },
+    "malaysia": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    }
+  },
+  "dosage": {
+    "therapeutic": "2 scoops (20g) mixed with 200ml water, serve promptly",
+    "maintenance": "1-2 scoops daily",
+    "general": "Mix with water and serve promptly"
+  },
+  "ingredients": [
+    "Organic pumpkin seed protein (USDA NOP certified)",
+    "PISANE™ pea protein (non-GMO yellow peas)",
+    "Inulin (prebiotic)"
+  ],
+  "who_can_consume": "Elderly, vegetarians, growing children, pregnant/breastfeeding mothers, sports lovers, those wanting weight management, people with lactose intolerance or egg/milk/cheese allergies.",
+  "who_cannot_consume": "Not specified. Consult a healthcare professional if you have kidney conditions or specific protein restrictions.",
+  "url": "https://www.dyna-nutrition.com/products/liveprotein/",
+  "images": [
+    "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/LAZADA-LiveProtein.jpg"
+  ],
+  "qa": [
+    {
+      "question": "Is LiveProtein suitable for people with allergies?",
+      "answer": "Yes, LiveProtein is allergen-free, lactose-free, and contains no major food allergens. It is gluten-free, non-dairy, soy-free, vegan-friendly, organic, and non-GMO."
+    },
+    {
+      "question": "How does it taste?",
+      "answer": "LiveProtein has a mild nutty taste with a pleasant aroma and no aftertaste (unlike soy protein). It has a greenish yellow color when mixed with warm water."
+    }
+  ]
+}

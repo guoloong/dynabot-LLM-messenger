@@ -1,0 +1,49 @@
+{
+  "name": "Organic Volcanic Barley Grass Juice Powder",
+  "description": "Organic barley grass uses BioActive Dehydration™ technology that dries products to powder at less than 41°C, preserving nutrients. Barley grass is one of the most nutrient-rich foods in nature with impressive antioxidant content including vitamin E, beta-carotene, and superoxide dismutase enzyme.",
+  "benefits": [
+    "Reduces Uric Acid",
+    "High antioxidant",
+    "Strengthens immune system",
+    "Promotes bone health",
+    "Improves skin health",
+    "Balances blood sugar level",
+    "Supports weight management"
+  ],
+  "price": {
+    "singapore": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    },
+    "malaysia": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    }
+  },
+  "dosage": {
+    "therapeutic": "1 teaspoon mixed with water (below 40°C), 1-2 times daily before meal",
+    "maintenance": "1 teaspoon daily before meal",
+    "general": "Mix with water below 40°C, preferably before meal"
+  },
+  "ingredients": [
+    "Organic Barley Grass Juice Powder (Liquadry Inc., Utah, USA)"
+  ],
+  "who_can_consume": "Adults and children seeking to reduce uric acid, improve skin health, or support weight management.",
+  "who_cannot_consume": "Not specified. Consult a healthcare professional if pregnant, nursing, or have specific health conditions.",
+  "url": "https://www.dyna-nutrition.com/products/barleygrass/",
+  "images": [
+    "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/LAZADA-Barleygrass.jpg"
+  ],
+  "qa": [
+    {
+      "question": "What nutrients are in Barley Grass Juice Powder?",
+      "answer": "Barley Grass Juice Powder is rich in Vitamins A, C, B, minerals (Iron, Calcium, Potassium, Magnesium, Phosphorus), absorbable protein, 20 amino acids including 8 essential amino acids, and enzymes (fatty acid oxidase, cytochrome oxidase, peroxidase, catalase, transhydrogenase)."
+    },
+    {
+      "question": "Why is barley grass juice powder better than barley grass powder?",
+      "answer": "Juice powder undergoes an additional filtering process that removes fibrous, pulpy plant materials, leaving just the concentrated juice before dehydration. This concentrates the nutritional properties and is the easiest way for the body to digest, assimilate, and utilize its nutrients."
+    }
+  ]
+}

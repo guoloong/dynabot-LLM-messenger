@@ -1,0 +1,57 @@
+{
+  "name": "MarineCal Plus",
+  "description": "MarineCal Plus is an advanced formulation for bone building combining Aquamin™ Seaweed Calcium with Bioactive Silica, Chlorophyll, Sesame seeds & Zinc-Enriched Yeast. Aquamin™ is produced from organic calcareous marine algae harvested from the pristine waters of the North Atlantic.",
+  "benefits": [
+    "Whole food calcium from organic seaweed",
+    "High bioavailability - High absorption rate",
+    "Bioactive Silica improves bone density",
+    "Builds stronger and more flexible bones",
+    "Alkaline-forming food which reduces body acidity",
+    "Boosts collagen production",
+    "Improves strength and elasticity of bones and joints",
+    "Promotes healthy hair and nail growth",
+    "Increases bone density",
+    "Anti-inflammatory properties beneficial for arthritis"
+  ],
+  "price": {
+    "singapore": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    },
+    "malaysia": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    }
+  },
+  "dosage": {
+    "therapeutic": "1 sachet daily mixed in 125ml water or juice (below 50°C)",
+    "maintenance": "1 sachet daily after meal",
+    "general": "Mix 1 sachet in 125ml (1/2 cup) water or juice"
+  },
+  "ingredients": [
+    "Aquamin™ organic red seaweed powder",
+    "Chlorophyll",
+    "Fermented yeast powder",
+    "Sesame seed extract powder",
+    "Bamboo leaf extract powder",
+    "Stevia"
+  ],
+  "who_can_consume": "Adults concerned about bone health, osteoporosis prevention, or those needing calcium supplementation.",
+  "who_cannot_consume": "Not specified. Consult a healthcare professional if pregnant, nursing, or have kidney conditions.",
+  "url": "https://www.dyna-nutrition.com/products/marinecal-plus/",
+  "images": [
+    "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/Lazada-MarineCal.jpg"
+  ],
+  "qa": [
+    {
+      "question": "What makes MarineCal Plus different from other calcium supplements?",
+      "answer": "MarineCal Plus uses Aquamin™ from organic seaweed which provides not just calcium but also magnesium and over 70 trace minerals that work in harmony. The bioactive silica helps improve bone density and the alkaline-forming nature reduces body acidity."
+    },
+    {
+      "question": "Who should take MarineCal Plus?",
+      "answer": "Anyone concerned about bone health, those at risk of osteoporosis, postmenopausal women, elderly individuals, and those wanting to support joint health and flexibility."
+    }
+  ]
+}

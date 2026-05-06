@@ -1,0 +1,54 @@
+{
+  "name": "Uri-Comfort",
+  "description": "Uri-Comfort is a natural urinary tract infection (UTI) treatment combining Cran-Max® and probiotics for UTI and yeast infection prevention. This innovative formulation works by reducing E. coli adhesion and inhibiting bacteria growth in the urinary tract.",
+  "benefits": [
+    "Scientifically Proven with clinically proven Cran-Max®",
+    "Patented Bio-Shield® delivery technology",
+    "Improves urinary tract health",
+    "48mg PACs combined with 6 strains of probiotics",
+    "100% Natural with no added sodium, sugar, or artificial sweetener",
+    "Fast Acting - works in days",
+    "Reduces E. coli adhesion to urinary tract cells",
+    "Inhibits bacteria growth",
+    "Helps prevent recurrent yeast infections"
+  ],
+  "price": {
+    "singapore": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    },
+    "malaysia": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    }
+  },
+  "dosage": {
+    "therapeutic": "1 sachet daily mixed in 250ml room temperature water",
+    "maintenance": "1 sachet daily",
+    "general": "Mix 1 sachet into 250ml of room temperature water"
+  },
+  "ingredients": [
+    "Cranberry juice powder",
+    "Cran-Max® cranberry extract powder",
+    "Proprietary probiotic blend powder",
+    "Stevia"
+  ],
+  "who_can_consume": "Women experiencing UTI symptoms, those with recurrent UTI, individuals with yeast infection concerns, those recovering from antibiotics.",
+  "who_cannot_consume": "Not specified. Consult a healthcare professional if pregnant, nursing, or have underlying health conditions.",
+  "url": "https://www.dyna-nutrition.com/products/uri-comfort/",
+  "images": [
+    "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/LAZADA-UriComfort.jpg"
+  ],
+  "qa": [
+    {
+      "question": "Is drinking cranberry juice the same as taking Uri-Comfort?",
+      "answer": "Not really. Most cranberry juices don't have enough A-type PACs to prevent bacteria from sticking to the urinary tract. Studies show 48mg of PACs daily with probiotics is needed for effective prevention."
+    },
+    {
+      "question": "How does Uri-Comfort work for yeast infections?",
+      "answer": "Multi-strains of Lactobacillus re-populates intestines with good bacteria and produces lactic and acetic acids to rebalance pH and restore acidity needed to curb yeast overgrowth."
+    }
+  ]
+}

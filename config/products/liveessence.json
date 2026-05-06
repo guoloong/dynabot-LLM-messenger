@@ -1,0 +1,52 @@
+{
+  "name": "VESPRO LiveEssence",
+  "description": "LiveEssence is a pristine clear liquid concentrate containing 37 types of colloidal aged & fermented nano digestive and metabolic enzymes from fruits, vegetables and starches, 78 types of Glacier water derived ionic trace minerals, and 20 types of colloidal amino acids from plants.",
+  "benefits": [
+    "For Poor Digestion - only fermented and aged enzymes are bioactive and effective",
+    "For Toxic Blood - 100% non-herbal blood cleanser and alkalizer",
+    "For Skin Problems - excellent for acne, psoriasis, eczema and rashes",
+    "For Poor Energy - provides ATP energy producing minerals and enzymes",
+    "Vegetarian Support - provides crucial minerals/enzymes/amino acids lacking in vegetarian diet",
+    "Increases Blood Conductivity - improves nerve impulse transmission",
+    "Diabetic Support - regulates blood sugar and insulin sensitivity"
+  ],
+  "price": {
+    "singapore": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    },
+    "malaysia": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    }
+  },
+  "dosage": {
+    "therapeutic": "8 drops into large glass of water or juice (below 40°C)",
+    "maintenance": "8 drops daily",
+    "general": "8 drops into large glass of water or juice (54 servings per 30ml bottle)"
+  },
+  "ingredients": [
+    "Ionised Water (Glacier snow water) 60%",
+    "Trace Minerals (Glacier snow water) 20%",
+    "Plant Enzymes (Pineapple, Papaya, etc.) 10%",
+    "Amino Acids (Soy extracts) 10%"
+  ],
+  "who_can_consume": "Adults seeking trace mineral supplementation, those with poor digestion, skin problems, low energy, or diabetes support.",
+  "who_cannot_consume": "Not specified. Consult a healthcare professional if pregnant, nursing, or have specific health conditions.",
+  "url": "https://www.dyna-nutrition.com/products/liveessence/",
+  "images": [
+    "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/LAZADA-LiveEssence.jpg"
+  ],
+  "qa": [
+    {
+      "question": "What makes LiveEssence different from other trace mineral products?",
+      "answer": "LiveEssence uses 100% pure glacier water from Mount Rainier, Washington, USA (no dilution) as its mineral source. It is a pure concentrate requiring only 8-10 drops per serving. 100% colloidal minerals without any adulteration is always clear and has no particles or precipitation even when refrigerated for 3 years."
+    },
+    {
+      "question": "What trace minerals are included?",
+      "answer": "LiveEssence contains 78 types of ionic trace minerals including Calcium, Magnesium, Iron, Zinc, Potassium, Sodium, and many more essential minerals derived from pristine virgin glaciers."
+    }
+  ]
+}

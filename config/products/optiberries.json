@@ -1,0 +1,56 @@
+{
+  "name": "Optiberries Chewable",
+  "description": "Optiberries Chewable Tablet is a combination of Lutemax 2020 marigold extract and European Bilberry extract formulated to provide protection against blue light and eye fatigue. Lutemax 2020 is clinically proven marigold extract standardized to contain 20% lutein and 4% zeaxanthin.",
+  "benefits": [
+    "Protects against blue light",
+    "Prevents eye strain and digital eye strain symptoms",
+    "Reduces eye dryness and fatigue",
+    "Supports brain function",
+    "Provides antioxidant protection",
+    "Increases brain-derived neurotrophic factor (BDNF)",
+    "Improves cognitive performance",
+    "Clinically proven results in just 8 weeks",
+    "Reduces risk of AMD and cataracts"
+  ],
+  "price": {
+    "singapore": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    },
+    "malaysia": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    }
+  },
+  "dosage": {
+    "therapeutic": "2 chewable tablets daily for adults",
+    "maintenance": "1 chewable tablet daily for children 2-12 years",
+    "general": "Chewable tablet - can be taken directly"
+  },
+  "ingredients": [
+    "Blackberry juice",
+    "Raspberry juice",
+    "Blueberry juice",
+    "European bilberry extract",
+    "Lutemax 2020 marigold flower extract",
+    "Stevia"
+  ],
+  "who_can_consume": "Children aged 2-12 years and adults using digital devices, those at risk of age-related macular degeneration.",
+  "who_cannot_consume": "Contains lactose. Not suitable for those with lactose intolerance.",
+  "url": "https://www.dyna-nutrition.com/products/optiberries/",
+  "images": [
+    "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/LAZADA-Optiberries.jpg"
+  ],
+  "qa": [
+    {
+      "question": "How does Optiberries protect against blue light?",
+      "answer": "Lutemax 2020 forms a shield by building up the macula, which protects your eyes from blue light exposure. The optimal 5:1 ratio of lutein and zeaxanthin is needed for a healthy macula."
+    },
+    {
+      "question": "Can children take Optiberries?",
+      "answer": "Yes, Optiberries is suitable for children aged 2-12 years. Children should take 1 chewable tablet daily, while adults can take 2 tablets daily."
+    }
+  ]
+}

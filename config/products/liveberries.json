@@ -1,0 +1,59 @@
+{
+  "name": "VesPro LiveBerries",
+  "description": "LiveBerries is a delicious berry fruit beverage formulated using 9 different types of whole berries. It is an excellent source of polyphenols and whole food antioxidants standardized ORAC 8000 TE per serving (Brunswick Labs USA certified).",
+  "benefits": [
+    "Protection against free radicals",
+    "Antioxidant rich - ORAC 8000 TE per serving",
+    "Fights harmful free radicals from daily computer and smartphone usage",
+    "Reduces inflammation in the body (lowers CRP marker)",
+    "Boosts recovery for chemotherapy patients and athletes",
+    "Helps neutralize excessive free radicals",
+    "May help maintain good health and slow down aging",
+    "Helps keep skin beautiful",
+    "Provides more energy",
+    "May improve sleep quality"
+  ],
+  "price": {
+    "singapore": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    },
+    "malaysia": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    }
+  },
+  "dosage": {
+    "therapeutic": "1 sachet daily mixed in 125ml water or juice (below 40°C)",
+    "maintenance": "1 sachet daily",
+    "general": "Mix 1 sachet into 125ml of water or juice (below 40°C)"
+  },
+  "ingredients": [
+    "Blackberries",
+    "Red & Black Raspberries",
+    "Blueberries",
+    "Strawberries",
+    "Boysenberries",
+    "Mulberries",
+    "Cranberries",
+    "Cherries"
+  ],
+  "who_can_consume": "People using computers/smartphones daily, office workers, athletes, chemotherapy recovery patients, shift workers, general public.",
+  "who_cannot_consume": "Not specified. Consult a healthcare professional if pregnant, nursing, or have specific health conditions.",
+  "url": "https://www.dyna-nutrition.com/products/liveberries/",
+  "images": [
+    "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/LAZADA-Liveberries.jpg"
+  ],
+  "qa": [
+    {
+      "question": "What makes LiveBerries special?",
+      "answer": "Each serving provides 1.5 cups of fresh berries with ORAC 8000 TE per serving (Brunswick Labs certified). The berries are from small, old-fashioned American family farms using ethical farming and heirloom seeds (not GMO or hybrid). Cold spray processed (not freeze dried) for optimal quality."
+    },
+    {
+      "question": "Is LiveBerries Halal certified?",
+      "answer": "Yes, LiveBerries is certified Halal by JAKIM and is a product of USA. It contains no artificial flavoring, coloring or sweeteners and is a vegetarian formula."
+    }
+  ]
+}

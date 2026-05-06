@@ -1,0 +1,49 @@
+{
+  "name": "Reswell Capsule",
+  "description": "Reswell Capsules is a combination of KSM-66™ Organic Ashwagandha Extract & Lemon Balm Extract. KSM-66™ is clinically proven to relieve stress and anxiety, improves sleep quality and cognitive function. Lemon Balm Extract improves mental focus and promotes a calm and positive mood.",
+  "benefits": [
+    "Reduces stress, anxiety, cortisol levels and stress-related food cravings",
+    "Improves sleep quality & shorter time falling asleep",
+    "Improves memory and cognitive function",
+    "Enhances mental focus and concentration",
+    "Can be taken long term to maintain good cognitive health",
+    "Effects seen within 1 hour of intake"
+  ],
+  "price": {
+    "singapore": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    },
+    "malaysia": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    }
+  },
+  "dosage": {
+    "therapeutic": "1 capsule twice daily preferably after meals",
+    "maintenance": "1 capsule once or twice daily after meals",
+    "general": "Take preferably after meals"
+  },
+  "ingredients": [
+    "KSM-66™ Organic Ashwagandha Extract 300mg",
+    "Lemon Balm Extract 180mg (standardized to min. 5% rosmarinic acid)"
+  ],
+  "who_can_consume": "Adults experiencing stress, anxiety, sleep issues, or seeking cognitive support.",
+  "who_cannot_consume": "Not specified. Consult a healthcare professional if pregnant, nursing, or on sedative medications.",
+  "url": "https://www.dyna-nutrition.com/products/reswell/",
+  "images": [
+    "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/LAZADA-Reswell.jpg"
+  ],
+  "qa": [
+    {
+      "question": "How quickly does Reswell work?",
+      "answer": "Reswell can be taken on demand where effects are seen within 1 hour of intake and are still measurable after 3 to 4 hours. For long-term benefits like reduced cortisol levels and improved sleep quality, consistent use over 8 weeks is recommended."
+    },
+    {
+      "question": "Can I take Reswell long term?",
+      "answer": "Yes, Reswell can be taken long term to maintain good cognitive health and stress management. Clinical studies showed significant reduction in serum cortisol levels after 8 weeks of consistent use."
+    }
+  ]
+}

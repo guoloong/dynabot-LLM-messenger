@@ -1,0 +1,54 @@
+{
+  "name": "TriCollagen",
+  "description": "TriCollagen is a new generation collagen supplement combining Collagen Tripeptides (CTP), OPITAC™ torula yeast glutathione, and Omegia® Tibetan Sea Buckthorn with Omega 3, 6, 7, 9. It is designed to support smooth skin, thick hair, strong nails and overall anti-aging.",
+  "benefits": [
+    "Highly bioavailable & digestible - absorbs within 30 minutes",
+    "More effective than conventional hydrolyzed collagen peptides",
+    "Incorporated into connective tissue preferentially",
+    "Supports smooth skin, thick hair, strong nails",
+    "Glutathione improves collagen absorption and has whitening effect",
+    "Omega 7 in Tibetan Sea Buckthorn improves skin hydration and elasticity",
+    "Strengthens bones by promoting bone calcification",
+    "Repairs and maintains joints"
+  ],
+  "price": {
+    "singapore": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    },
+    "malaysia": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    }
+  },
+  "dosage": {
+    "therapeutic": "1 sachet daily mixed in 125ml water or juice (below 50°C) before bedtime",
+    "maintenance": "1 sachet daily before bedtime",
+    "general": "Mix 1 sachet in 125ml (1/2 cup) water or juice and drink before bedtime"
+  },
+  "ingredients": [
+    "Collagen Tripeptide 1500mg",
+    "Omegia® whole sea buckthorn fruit powder",
+    "Torula yeast extract (OPITAC™ - 98% glutathione)",
+    "Natural orange flavor",
+    "Stevia"
+  ],
+  "who_can_consume": "Women seeking beauty from within, anti-aging support, skin/hair/nail health.",
+  "who_cannot_consume": "Contains torula yeast extract. Consult a healthcare professional if you have yeast allergies.",
+  "url": "https://www.dyna-nutrition.com/products/tricollagen/",
+  "images": [
+    "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/Lazada-TriCollagen.jpg"
+  ],
+  "qa": [
+    {
+      "question": "Why is Collagen Tripeptide better than regular collagen?",
+      "answer": "Collagen Tripeptide (CTP) has an average molecular weight of 500Da and contains GPH which absorbs within 30 minutes. It is more effective than conventional hydrolyzed collagen peptides and is incorporated into connective tissue preferentially."
+    },
+    {
+      "question": "What are the benefits of glutathione in TriCollagen?",
+      "answer": "OPITAC™ Glutathione is clinically proven to make skin brighter and lighter. It inhibits tyrosinase activity, suppresses eumelanin development, provides UV damage protection, and accelerates production of type I collagen."
+    }
+  ]
+}

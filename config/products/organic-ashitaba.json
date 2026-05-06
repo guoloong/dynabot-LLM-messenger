@@ -1,0 +1,50 @@
+{
+  "name": "Organic Ashitaba Aojiru",
+  "description": "Premium Organic Ashitaba grown in Japanese Agriculture Standard (JAS) certified organic farms in the highlands with fertile volcanic soil. No agriculture chemical is used and every process is done by hand. Ashitaba means 'Tomorrow Leaf' in Japanese - known for longevity benefits.",
+  "benefits": [
+    "Rich in nutrients (super food)",
+    "Regulate cholesterol level",
+    "Removes harmful toxic wastes from body",
+    "Potent antioxidant",
+    "Regulate blood sugar",
+    "Strengthens immune system",
+    "Relieves fatigue & tiredness"
+  ],
+  "price": {
+    "singapore": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    },
+    "malaysia": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    }
+  },
+  "dosage": {
+    "therapeutic": "1 teaspoon mixed with water (below 40°C), 1-3 times daily before meal",
+    "maintenance": "1 teaspoon daily before meal",
+    "general": "Mix 1 teaspoon with water (below 40°C), preferably before meal"
+  },
+  "ingredients": [
+    "Organic ashitaba powder (leaves and stems)",
+    "Stevia"
+  ],
+  "who_can_consume": "Everyone, including strict vegans and vegetarians (due to Vitamin B12 content).",
+  "who_cannot_consume": "Not specified. Consult a healthcare professional if pregnant, nursing, or have specific health conditions.",
+  "url": "https://www.dyna-nutrition.com/products/organic-ashitaba/",
+  "images": [
+    "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/LAZADA-Ashitaba.jpg"
+  ],
+  "qa": [
+    {
+      "question": "What nutrients are in Organic Ashitaba?",
+      "answer": "Ashitaba contains Vitamin B12 (rare plant source ideal for vegans), Chalcones (Xanthoangelol and 4-hydroxyderricin) with antibacterial, antitumour, and lipid metabolism effects, Germanium which stimulates interferon production, and Chlorophyll which cleanses blood and liver."
+    },
+    {
+      "question": "Why is it called 'Tomorrow Leaf'?",
+      "answer": "Ashitaba (Angelica Keiskei) means 'Tomorrow Leaf' in Japanese - its vital life force is so strong that it is believed to grow a new leaf tomorrow if you pick one today. The inhabitants of Hachijo Island are well known for their longevity and good health, with Ashitaba being integral to their diet for hundreds of years."
+    }
+  ]
+}

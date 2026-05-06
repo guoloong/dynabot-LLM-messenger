@@ -1,0 +1,49 @@
+{
+  "name": "RiFlex 360 Capsule",
+  "description": "RiFlex 360 Capsule is an advanced joint health formulation combining Turmacin® Turmeric Extract, Tart Cherry extract, and French Pine Bark Extract. Traditionally used for relieving joint pain and symptoms of osteoarthritis.",
+  "benefits": [
+    "Reduce knee joint pain in 3 to 7 days",
+    "Relief symptoms of osteoarthritis",
+    "Promote collagen synthesis in joints",
+    "Reduce uric acid",
+    "Powerful anti-inflammatory & antioxidant properties"
+  ],
+  "price": {
+    "singapore": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    },
+    "malaysia": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    }
+  },
+  "dosage": {
+    "therapeutic": "2 capsules twice daily after meal for severe joint pain or osteoarthritis",
+    "maintenance": "2 capsules once daily after meal for mild joint pain",
+    "general": "Take preferably after meals"
+  },
+  "ingredients": [
+    "Turmacin® Turmeric Extract 250mg",
+    "Tart Cherry Extract 100mg",
+    "French Pine Bark Extract 50mg"
+  ],
+  "who_can_consume": "People with joint pain, individuals with osteoarthritis, those with gout, athletes experiencing post-exercise muscle and joint pain.",
+  "who_cannot_consume": "Not specified. Consult a healthcare professional if pregnant, nursing, or on blood-thinning medication.",
+  "url": "https://www.dyna-nutrition.com/products/riflex360-capsule/",
+  "images": [
+    "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/Riflex.jpg"
+  ],
+  "qa": [
+    {
+      "question": "How quickly can I expect to see results with RiFlex 360?",
+      "answer": "Clinical studies show that Turmacin® can reduce knee joint pain in 3 to 7 days. In one study, after just 3 days, it effectively reduced pain when walking on flat surface, going up/down stairs, sitting or lying, and at night while in bed."
+    },
+    {
+      "question": "What is the difference between mild and severe dosage?",
+      "answer": "For mild joint pain, take 2 capsules once daily after meal. For severe joint pain or osteoarthritis, take 2 capsules twice daily after meal for optimal relief."
+    }
+  ]
+}

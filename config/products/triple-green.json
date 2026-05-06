@@ -1,0 +1,50 @@
+{
+  "name": "Organic Volcanic Triple Green",
+  "description": "Organic Volcanic Triple Green is a health supplement combining three powerful green superfoods: Ashitaba, Wheatgrass, and Barley Grass. The organic wheatgrass and barley grass are processed using BioActive Dehydration™ technology at less than 41°C, preserving nutrients, color, flavor and aroma.",
+  "benefits": [
+    "Powerful antioxidant",
+    "Rich in Chlorophyll",
+    "Boost immune system",
+    "Reduce inflammation",
+    "Aid in digestion",
+    "Detox the body"
+  ],
+  "price": {
+    "singapore": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    },
+    "malaysia": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    }
+  },
+  "dosage": {
+    "therapeutic": "1 teaspoon mixed with water (below 40°C), 1-2 times daily before meals",
+    "maintenance": "1 teaspoon daily before meals",
+    "general": "Mix with water below 40°C, preferably before meals"
+  },
+  "ingredients": [
+    "Organic Ashitaba Powder (Japan Bio Science Laboratory)",
+    "Organic Wheatgrass Juice Powder (Liquadry Inc., Utah, USA)",
+    "Organic Barley Grass Juice Powder"
+  ],
+  "who_can_consume": "Adults and children seeking to boost immune system, detox, or increase chlorophyll intake.",
+  "who_cannot_consume": "Not specified. Consult a healthcare professional if pregnant, nursing, or have specific health conditions.",
+  "url": "https://www.dyna-nutrition.com/products/triple-green/",
+  "images": [
+    "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/LAZADA-Triple-Green.jpg"
+  ],
+  "qa": [
+    {
+      "question": "What makes volcanic soil wheatgrass and barleygrass special?",
+      "answer": "Volcanic soil contains over 70+ trace minerals that promote optimal growth and nutritional content of green plants. The BioActive Dehydration™ process dries products at less than 41°C, preserving nutrients, color, flavor and aroma."
+    },
+    {
+      "question": "What is Ashitaba?",
+      "answer": "Ashitaba (Angelica Keiskei) is a native Japanese plant meaning 'Tomorrow Leaf' in Japanese - believed to grow new leaves the next day after picking. Used as health food and medical herb for hundreds of years, particularly known for longevity benefits."
+    }
+  ]
+}

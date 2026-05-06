@@ -1,0 +1,54 @@
+{
+  "name": "NitroVar",
+  "description": "NitroVar is a new and improved wellness supplement with a synergistic blend of clinically backed, natural ingredients. It provides a Triple-Action Shield for Liver Vitality, Immune Strength, and Hangover Relief using Young Broccoli Sprouts, Young Asparagus Sprout, Grape Seeds, Antromax™ Antrodia Cinnamomea & Turmacin® Turmeric Extract.",
+  "benefits": [
+    "Advanced Liver Protection",
+    "Immune Modulation for Year-Round Defense",
+    "Anti-Hangover Recovery",
+    "Environmental Toxin Defense",
+    "Cellular Longevity & Anti-Aging",
+    "No added preservatives & additives"
+  ],
+  "price": {
+    "singapore": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    },
+    "malaysia": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    }
+  },
+  "dosage": {
+    "therapeutic": "1 sachet twice daily after meal (liver detox), 2 sachets twice daily after meal (immune modulation)",
+    "maintenance": "1 sachet once daily after meal",
+    "general": "Mix sachet with 125ml water or juice (below 40°C)"
+  },
+  "ingredients": [
+    "Young Broccoli Sprouts",
+    "Young Asparagus Sprouts",
+    "Antromax™ Antrodia Cinnamomea",
+    "Turmacin™ Turmeric Extract",
+    "Grape Seeds",
+    "Mixed Berries Juice Powder (Raspberry, Blueberry, Blackberry)",
+    "Stevia"
+  ],
+  "who_can_consume": "People with liver concerns, alcohol drinkers, immunocompromised individuals, those with fatigue.",
+  "who_cannot_consume": "Not specified. Consult a healthcare professional if pregnant, nursing, or have underlying health conditions.",
+  "url": "https://www.dyna-nutrition.com/products/nitrovar-plus/",
+  "images": [
+    "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/Lazada-NitrovarPlus.jpg"
+  ],
+  "qa": [
+    {
+      "question": "How do I take NitroVar for hangover prevention?",
+      "answer": "For hangover prevention, take 1 sachet 30 minutes before alcohol ingestion and 1 sachet after alcohol ingestion. Mix with 125ml of water or juice below 40°C."
+    },
+    {
+      "question": "What are the dosage options for different needs?",
+      "answer": "General health maintenance: 1 sachet once daily after meal. Liver detox: 1 sachet twice daily after meal. Immune modulation: 2 sachets twice daily after meal."
+    }
+  ]
+}

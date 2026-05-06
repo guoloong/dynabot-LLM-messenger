@@ -1,0 +1,65 @@
+{
+  "name": "AshiSlim Plus",
+  "description": "AshiSlim Plus is a breakthrough weight management supplement that specifically targets stubborn visceral fat using a synergistic blend of three clinically-studied natural ingredients: Organic Ashitaba, ApplePhenon®, and Morosil®. Unlike traditional weight loss methods that may miss visceral fat, AshiSlim Plus is designed to combat visceral fat where it matters most, supporting healthy weight management and fat-burning metabolism.",
+  "benefits": [
+    "Targets Stubborn Visceral Fat",
+    "Supports Belly Fat Reduction",
+    "Boosts Fat-Burning Metabolism",
+    "Increases Body's Own GLP-1 Activity",
+    "Clinically Studied Plant Ingredients",
+    "Supports Healthy Weight Management"
+  ],
+  "price": {
+    "singapore": {
+      "1_bottle": 51.90,
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    },
+    "malaysia": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    }
+  },
+  "dosage": {
+    "preparation": "Mix 1 sachet in 150ml water or juice (temperature below 40°C)",
+    "frequency": "1 sachet per day after meals",
+    "general": "Take preferably after meals"
+  },
+  "ingredients": [
+    "Organic Ashitaba Powder (Chalcones - xanthoangelol & 4-hydroxyderricin)",
+    "ApplePhenon® Green Apple Extract 500mg (procyanidins from unripe green apples)",
+    "Morosil® Moro Red Orange Extract 400mg (Sicilian blood orange)",
+    "Orange Juice Powder",
+    "Stevia (natural sweetener)",
+    "Vitamin C"
+  ],
+  "who_can_consume": "Adults seeking to target and reduce stubborn visceral (abdominal) fat; individuals with BMI between 25-35; suitable for vegetarians.",
+  "who_cannot_consume": "Not specified. Consult a healthcare professional if you have known allergies to any of the ingredients.",
+  "url": "https://www.dyna-nutrition.com/products/ashislim-plus/",
+  "images": [
+    "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/Lazada-AshiSlimPlus.png"
+  ],
+  "qa": [
+    {
+      "question": "How long does it take to see results?",
+      "answer": "Based on clinical studies, most users begin to see results within 8-12 weeks. ApplePhenon® studies showed visceral fat reduction in 8-12 weeks, Morosil® showed weight loss results in 12 weeks, and Ashitaba showed belly fat reduction in 8 weeks."
+    },
+    {
+      "question": "Is AshiSlim Plus safe?",
+      "answer": "Yes. Clinical studies confirmed that even taking high doses for one month is safe and does not cause harmful side effects. The product uses natural ingredients with clinical research support. However, consult a healthcare professional if you have known allergies to any of the ingredients."
+    },
+    {
+      "question": "Who is AshiSlim Plus suitable for?",
+      "answer": "AshiSlim Plus is suitable for adults seeking to target and reduce stubborn visceral (abdominal) fat, particularly those with BMI between 25-35. It is a vegetarian formula with no artificial flavors, colors, or sweeteners."
+    },
+    {
+      "question": "How should I take AshiSlim Plus?",
+      "answer": "Mix 1 sachet (5g) of AshiSlim Plus in 150ml of water or juice (temperature below 40°C). Take once daily after meals."
+    },
+    {
+      "question": "Can I take AshiSlim Plus with other medications?",
+      "answer": "Consult your doctor or healthcare professional before taking any supplement if you are on medication or have existing health conditions."
+    }
+  ]
+}

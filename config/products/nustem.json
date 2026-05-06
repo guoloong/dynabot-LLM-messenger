@@ -1,0 +1,52 @@
+{
+  "name": "NuSTEM",
+  "description": "NuSTEM is an advanced formula for healthy aging using CyanthOx™ Tibetan Seaberry Concentrate & Ioniplex® Ionic Minerals. It combines two clinically studied ingredients to support stem cell release, cellular repair, and antioxidant protection for healthy aging.",
+  "benefits": [
+    "Advanced stem cell support",
+    "Increases the number of circulating stem cells",
+    "Accelerates tissue repair at cellular level",
+    "Supports daily tissue renewal",
+    "Promotes healthy aging",
+    "Supports physical performance at all levels",
+    "Powerful antioxidant – protects against oxidative damage"
+  ],
+  "price": {
+    "singapore": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    },
+    "malaysia": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    }
+  },
+  "dosage": {
+    "therapeutic": "1 sachet daily mixed in 150ml room temperature water",
+    "maintenance": "1 sachet daily",
+    "general": "Mix 1 sachet into 150ml of room temperature water"
+  },
+  "ingredients": [
+    "Mixed berries juice powder (blackberry juice, raspberry juice, blueberry juice)",
+    "CyanthOx™ Tibetan seaberry concentrate",
+    "Ioniplex® ionic mineral complex",
+    "Stevia"
+  ],
+  "who_can_consume": "Adults seeking healthy aging support, cellular repair, and antioxidant protection.",
+  "who_cannot_consume": "Not specified. Consult a healthcare professional if pregnant, nursing, or have underlying health conditions.",
+  "url": "https://www.dyna-nutrition.com/products/nustem/",
+  "images": [
+    "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/LAZADA-nustem.jpg"
+  ],
+  "qa": [
+    {
+      "question": "What is CyanthOx™ and how does it support stem cells?",
+      "answer": "CyanthOx™ is extracted from Tibetan Plateau sea buckthorn with a concentration ratio of 300kg sea buckthorn produces 1kg CyanthOx™. It is clinically tested to increase circulating stem cells by nearly 40% and may stimulate 3 different types of stem cells."
+    },
+    {
+      "question": "What makes Ioniplex® special?",
+      "answer": "Ioniplex® is a patented fulvic ionic mineral complex containing up to 65 essential macro and trace minerals. It is clinically shown to improve mitochondrial metabolism, may reduce AGEs by up to 50%, and has been proven to improve skin texture (33%), hair appearance (14%), and nail growth (142%)."
+    }
+  ]
+}

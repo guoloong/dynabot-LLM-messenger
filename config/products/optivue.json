@@ -1,0 +1,50 @@
+{
+  "name": "OptiVue",
+  "description": "OptiVue is a combination of Lutemax 2020 marigold extract, European Bilberry extract and French Pine Bark extract formulated to provide optimum eye health. Lutemax 2020 is clinically proven marigold extract standardized to contain 20% lutein and 4% zeaxanthin.",
+  "benefits": [
+    "Protection Against Blue Light - clinically proven to help eyes filter out blue light",
+    "Reduces Eye Fatigue & Dryness",
+    "Strengthens Eye Macular with optimal 5:1 ratio of lutein and zeaxanthin",
+    "Promotes Healthy Eye Pressure",
+    "Clinically Proven results in just 8 weeks",
+    "Reduces risk of age-related macular degeneration (AMD) and cataracts"
+  ],
+  "price": {
+    "singapore": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    },
+    "malaysia": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    }
+  },
+  "dosage": {
+    "therapeutic": "1 capsule once daily after meal",
+    "maintenance": "1 capsule daily after meal",
+    "general": "Take after meal"
+  },
+  "ingredients": [
+    "Lutemax 2020 Marigold Extract 60mg (12mg Lutein, 2.4mg Zeaxanthin)",
+    "European Bilberry Extract 120mg",
+    "French Pine Bark Extract 60mg"
+  ],
+  "who_can_consume": "Adults experiencing digital eye strain, those concerned about blue light exposure, individuals at risk for age-related eye conditions.",
+  "who_cannot_consume": "Not specified. Consult a healthcare professional if pregnant, nursing, or have existing eye conditions.",
+  "url": "https://www.dyna-nutrition.com/products/optivue/",
+  "images": [
+    "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/LAZADA-Optivue.jpg"
+  ],
+  "qa": [
+    {
+      "question": "How does OptiVue help with glaucoma?",
+      "answer": "The combination of French Pine Bark and Bilberry promotes healthy ocular fluid pressure and may help lower intraocular pressure (IOP), reducing glaucoma risk. It may also strengthen the effect of glaucoma medication."
+    },
+    {
+      "question": "How long before seeing results?",
+      "answer": "OptiVue is clinically proven to produce results in just 8 weeks. The product uses patented Lutemax 2020 providing all three macular carotenoids."
+    }
+  ]
+}

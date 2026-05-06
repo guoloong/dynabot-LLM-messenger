@@ -1,0 +1,57 @@
+{
+  "name": "GlucoPal",
+  "description": "GlucoPal is a triple action blood sugar supplement that combines clinically studied botanical ingredients including Mulbalance™ Mulberry Leaf Extract, Bitter Melon Extract, and Inulin (chicory root) for a powerful triple-action approach to blood sugar management.",
+  "benefits": [
+    "Significantly reduces post-meal blood glucose peaks",
+    "Significantly reduces insulin peaks and total insulin required",
+    "Lowers glycemic index (sucrose GI reduced from 65 to 33)",
+    "Insulin-like effects for blood sugar regulation",
+    "Improves insulin sensitivity via AMPK enzyme activation",
+    "Reduces glucose production in the liver",
+    "Slows carbohydrate absorption",
+    "Nourishes beneficial gut bacteria",
+    "Improves gut health and metabolism",
+    "Reduces pancreatic strain",
+    "Supports long-term glycemic stability"
+  ],
+  "price": {
+    "singapore": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    },
+    "malaysia": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    }
+  },
+  "dosage": {
+    "therapeutic": "1 sachet 15-30 minutes before meal, once daily before heaviest meal",
+    "maintenance": "1 sachet daily before main meal",
+    "general": "Take 15-30 minutes before meals"
+  },
+  "ingredients": [
+    "Chicory Root Extract (Inulin) 1890mg",
+    "Mulbalance™ Mulberry Leaf Extract 750mg",
+    "Bitter Melon Extract 150mg",
+    "Natural orange flavor",
+    "Stevia"
+  ],
+  "who_can_consume": "Adults concerned about blood sugar levels, prediabetes, or diabetes management.",
+  "who_cannot_consume": "Not specified. Consult a healthcare professional if pregnant, nursing, or on diabetes medication.",
+  "url": "https://www.dyna-nutrition.com/products/glucopal/",
+  "images": [
+    "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/Lazada-GlucoPAL.jpg"
+  ],
+  "qa": [
+    {
+      "question": "How does GlucoPal help with blood sugar management?",
+      "answer": "GlucoPal uses a triple-action approach: Mulbalance™ reduces blood sugar spikes by slowing carbohydrate and sugar digestion, Bitter Melon Extract supports healthy glucose metabolism through multiple pathways, and Inulin gently slows digestion and sugar release."
+    },
+    {
+      "question": "How long does it take to see results?",
+      "answer": "Clinical studies show significant reduction in blood glucose peaks with Mulbalance™ 750mg. It is recommended to take daily for 3 months for optimal results."
+    }
+  ]
+}

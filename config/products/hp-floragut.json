@@ -1,0 +1,61 @@
+{
+  "name": "HP-FloraGut (AB Kefir Probiotics)",
+  "description": "HP FloraGut is an advanced kefir probiotic formulation for digestive health combining prebiotic, probiotic and postbiotic. It contains abundant postbiotic metabolites including peptides, 28 types of free amino acid, oligosaccharides, minerals, and vitamin B complex.",
+  "benefits": [
+    "Benefit gastrointestinal health",
+    "Improve digestion",
+    "Relax constipation and diarrhea",
+    "Enhance Calcium absorbed",
+    "Reduce lactose intolerance",
+    "Inhibit bad bacteria",
+    "Regulate immune cells to boost immunity",
+    "Improve gut microbiota",
+    "Provide energy to increase metabolism"
+  ],
+  "price": {
+    "singapore": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    },
+    "malaysia": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    }
+  },
+  "dosage": {
+    "therapeutic": "1-2 sachets per day, may consume directly or mix with water/beverages at room temperature",
+    "maintenance": "1 sachet daily",
+    "general": "May consume directly from sachet or mix with water or beverages"
+  },
+  "ingredients": [
+    "Passion fruit juice powder",
+    "Lemon powder",
+    "B. longum BL986",
+    "L. acidophilus LA1063",
+    "L. fermentum LF26",
+    "L. helveticus LH43",
+    "L. paracasei LPC12",
+    "L. rhamnosus LRH10",
+    "S. thermophilus ST30",
+    "Vitamin C",
+    "Isomalto-oligosaccharide (IMO)"
+  ],
+  "who_can_consume": "People with lactose intolerance, general population seeking digestive health support.",
+  "who_cannot_consume": "Not specified. Consult a healthcare professional if pregnant, nursing, or immunocompromised.",
+  "url": "https://www.dyna-nutrition.com/products/hp-floragut/",
+  "images": [
+    "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/LAZADA-HP-Floragut.jpg"
+  ],
+  "qa": [
+    {
+      "question": "What makes HP-FloraGut different from other probiotics?",
+      "answer": "HP FloraGut combines prebiotic, probiotic and postbiotic in one product using SYNTEK™ Technology. The unique symbiotic fermentation technology enhances probiotic stability with patented coating and freeze-drying technology for improved gastric acid/bile salt tolerance."
+    },
+    {
+      "question": "What were the clinical trial results?",
+      "answer": "In a 3-week human trial at National Cheng Kung University Hospital, Taiwan (54 candidates): significantly reduced constipation, improved fecal consistency, reduced episodes of diarrhea, helped with abdominal pain, improved bloating, and improved appetite significantly."
+    }
+  ]
+}

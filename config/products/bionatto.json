@@ -1,0 +1,50 @@
+{
+  "name": "BioNatto Plus",
+  "description": "BioNatto Plus is an enhanced formulation combining Nattokinase NSK-SD®, French maritime pine bark extract and grape seed extract. It is a natural supplement meant for blood pressure, improve blood circulation and reduce cholesterol.",
+  "benefits": [
+    "Support Healthy Blood Pressure Levels",
+    "Improve Blood Circulation",
+    "Reduce Numbness in Hands and Feet",
+    "Support Deep Vein Thrombosis",
+    "Support Overall Cardiovascular Health",
+    "Reduce Cholesterol"
+  ],
+  "price": {
+    "singapore": {
+      "1_bottle": 69.90,
+      "2_bottle": 132.80,
+      "3_bottle": 179.00
+    },
+    "malaysia": {
+      "1_bottle": 151.90,
+      "2_bottle": 288.61,
+      "3_bottle": 387.35
+    }
+  },
+  "dosage": {
+    "therapeutic": "2 capsules twice daily after breakfast & dinner",
+    "maintenance": "1-2 capsules once daily after a meal",
+    "general": "Take preferably after meals"
+  },
+  "ingredients": [
+    "Nattokinase NSK-SD® 2000 FU",
+    "French maritime pine bark extract 100mg",
+    "Grape seed extract 100mg"
+  ],
+  "who_can_consume": "Adults concerned about blood pressure or circulation.",
+  "who_cannot_consume": "Not specified. Consult a healthcare professional if pregnant, nursing, or on blood‑thinning medication.",
+  "url": "https://www.dyna-nutrition.com/product/bionatto-plus/",
+  "images": [
+    "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/LAZADA-BionattoPlus-2.jpg"
+  ],
+  "qa": [
+    {
+      "question": "How long does it take to see results?",
+      "answer": "Usually 6-8 weeks. This is a natural supplement with no side effects."
+    },
+    {
+      "question": "Can I take BioNatto Plus with other medications?",
+      "answer": "Consult your doctor, especially if you are on blood‑thinning medication."
+    }
+  ]
+}

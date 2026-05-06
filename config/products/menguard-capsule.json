@@ -1,0 +1,53 @@
+{
+  "name": "Men Guard Capsule",
+  "description": "Men Guard Capsule is a combination of the 3 most powerful men's tonic – Tongkat Ali, KSM-66™ Ashwagandha and Maca. It is designed to boost fertility, testosterone levels, muscle mass, and overall men's health.",
+  "benefits": [
+    "Boost fertility and testosterone levels",
+    "Increases muscle mass and endurance",
+    "Improves sleep, mood and overall general and sexual health",
+    "Enhances memory and cognitive function",
+    "Natural hormones balancing effect and anti-aging properties",
+    "Promotes endurance, strength, muscle size and muscle recovery rate",
+    "Reduces stress, anxiety and cortisol levels",
+    "Improves prostate health",
+    "Potent aphrodisiac & energy enhancer"
+  ],
+  "price": {
+    "singapore": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    },
+    "malaysia": {
+      "1_bottle": "Not specified",
+      "2_bottle": "Not specified",
+      "3_bottle": "Not specified"
+    }
+  },
+  "dosage": {
+    "therapeutic": "2 capsules once daily after meal",
+    "maintenance": "1-2 capsules once daily after meal",
+    "general": "Take after meal for best absorption"
+  },
+  "ingredients": [
+    "Tongkat Ali Extract 100mg (standardized to min. 1% eurycomanone)",
+    "KSM-66™ Organic Ashwagandha Extract 300mg",
+    "Maca Extract 50mg"
+  ],
+  "who_can_consume": "Men seeking to improve fertility, testosterone levels, muscle mass, energy, and overall men's health.",
+  "who_cannot_consume": "Not specified. Consult a healthcare professional if pregnant, nursing, or have hormone-related conditions.",
+  "url": "https://www.dyna-nutrition.com/products/menguard-capsule/",
+  "images": [
+    "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/LAZADA-Menguard.jpg"
+  ],
+  "qa": [
+    {
+      "question": "What are the key ingredients in Men Guard and their benefits?",
+      "answer": "Men Guard contains three powerful ingredients: Tongkat Ali (Malaysian ginseng) for testosterone and energy, KSM-66™ Ashwagandha for stress reduction and muscle growth, and Maca (Peruvian ginseng) for fertility and vitality."
+    },
+    {
+      "question": "Is Men Guard only for older men?",
+      "answer": "No, Men Guard is suitable for adult men of all ages who want to support their overall men's health, testosterone levels, fertility, or physical performance."
+    }
+  ]
+}
