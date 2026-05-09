@@ -5,6 +5,12 @@
 
 # Session data (WhatsApp authentication - contains sensitive tokens)
 session-data/
+.WWebJS/
+
+# User data (privacy sensitive - never commit!)
+conversations.json
+contact_cache.json
+human_sessions.json
 
 # Dependencies
 node_modules/
