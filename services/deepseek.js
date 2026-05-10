@@ -6,6 +6,7 @@ const { searchWebsite, fetchProductPageAndLinks } = require('../config/botConfig
 const { isStoreQuery, isStoreQueryWithLLM, findStores, fetchProducts, clearPendingProduct, trackMentionedProduct, getLastMentionedProduct } = require('./storeLocator');
 const { getProductPrice, formatPriceResponse, getCurrencyFromPhone, getProductSlug: getPriceApiSlug } = require('./priceApi');
 const { getPhoneNumber } = require('../utils/contactCache');
+const { processIntent, generateActionResponse, clearUserState, INTENT_TYPES } = require('./intentManager');
 
 // Product slug normalization helper
 // Based on actual API slugs from: https://www.dyna-nutrition.com/wp-json/woo-country-price/v1/product-slugs
@@ -65,14 +66,14 @@ function getProductSlug(productName) {
 
 // ------------------- DeepSeek keyword extraction -----------------------
 async function extractKeywordsWithDeepSeek(userMessage, apiKey) {
-    console.log(`ü§ñ Asking DeepSeek to extract keywords from: "${userMessage}"`);
+    console.log(`Ì†æÌ¥ñ Asking DeepSeek to extract keywords from: "${userMessage}"`);
     if (!apiKey) {
         console.warn('‚ö†Ô∏è No API key for keyword extraction ‚Äì falling back to raw message');
         return userMessage;
     }
 
-    const prompt = `Extract the most important keywords from this user message for a web search. 
-Return ONLY the keywords separated by spaces, no punctuation, no extra text. 
+    const prompt = `Extract the most important keywords from this user message for a web search.
+Return ONLY the keywords separated by spaces, no punctuation, no extra text.
 Focus on product names, ingredients, health terms, key concepts.
 Remove filler words like "can", "does", "what", "is", "the", "should", "we", "have", etc.
 
@@ -98,7 +99,7 @@ Keywords:`;
         );
 
         const keywords = response.data.choices[0].message.content.trim();
-        console.log(`üîë DeepSeek extracted keywords: "${keywords}"`);
+        console.log(`Ì†ΩÌ¥ë DeepSeek extracted keywords: "${keywords}"`);
 
         if (!keywords || keywords.split(/\s+/).length === 0 || keywords.length < 3) {
             console.log('‚ö†Ô∏è Empty or too-short keywords ‚Äì using original message');
@@ -136,7 +137,7 @@ async function httpGetWithRetry(url, options = {}, maxRetries = 3) {
 
 // ------------------- DuckDuckGo API (no key required) ------------------
 async function searchInternet(query) {
-    console.log(`üåê DuckDuckGo API search: "${query}"`);
+    console.log(`Ì†ºÌºê DuckDuckGo API search: "${query}"`);
     try {
         const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
         const { data } = await httpGetWithRetry(url);
@@ -147,10 +148,10 @@ async function searchInternet(query) {
                 .join(' ');
             text = (text + ' ' + firstTopics).trim();
         }
-        console.log(`üåê DuckDuckGo returned ${text.length} chars`);
+        console.log(`Ì†ºÌºê DuckDuckGo returned ${text.length} chars`);
         return text.length > 50 ? text : null;
     } catch (err) {
-        console.error('üåê DuckDuckGo error:', err.message);
+        console.error('Ì†ºÌºê DuckDuckGo error:', err.message);
         return null;
     }
 }
@@ -177,21 +178,21 @@ function findLastProductName(text, productNames) {
     let lastProduct = null;
     let lastIndex = -1;
     const lowerText = text.toLowerCase();
-    
-    console.log(`üîç [DEBUG] findLastProductName: searching in "${text}"`);
-    console.log(`üîç [DEBUG] Available products: ${productNames.join(', ')}`);
-    
+
+    console.log(`Ì†ΩÌ¥ç [DEBUG] findLastProductName: searching in "${text}"`);
+    console.log(`Ì†ΩÌ¥ç [DEBUG] Available products: ${productNames.join(', ')}`);
+
     for (const name of productNames) {
         const lowerName = name.toLowerCase();
         let index = lowerText.lastIndexOf(lowerName);
-        
-        console.log(`  üîé Checking "${name}" (lower: "${lowerName}"): index=${index}`);
-        
+
+        console.log(`  Ì†ΩÌ¥é Checking "${name}" (lower: "${lowerName}"): index=${index}`);
+
         if (index === -1) {
             const shortName = lowerName.replace(' capsule', '').replace(' plus', '').trim();
             if (shortName !== lowerName) {
                 index = lowerText.lastIndexOf(shortName);
-                console.log(`    üîé Also tried short name "${shortName}": index=${index}`);
+                console.log(`    Ì†ΩÌ¥é Also tried short name "${shortName}": index=${index}`);
             }
         }
         if (index > lastIndex) {
@@ -200,8 +201,8 @@ function findLastProductName(text, productNames) {
             console.log(`    ‚úÖ New best match: "${name}" at index ${index}`);
         }
     }
-    
-    console.log(`üîç [DEBUG] Final matched product: "${lastProduct}"`);
+
+    console.log(`Ì†ΩÌ¥ç [DEBUG] Final matched product: "${lastProduct}"`);
     return lastProduct;
 }
 
@@ -241,7 +242,7 @@ function jaccardSimilarity(str1, str2) {
 
 // ------------------- LLM-based Intent Detection ---------------------------
 async function detectIntentWithLLM(userMessage, apiKey) {
-    console.log(`ü§ñ Asking DeepSeek to detect intent for: "${userMessage}"`);
+    console.log(`Ì†æÌ¥ñ Asking DeepSeek to detect intent for: "${userMessage}"`);
     if (!apiKey) {
         console.warn('‚ö†Ô∏è No API key for intent detection ‚Äì falling back to regex');
         return null;
@@ -278,7 +279,7 @@ Response:`;
         );
 
         const content = response.data.choices[0].message.content.trim();
-        console.log(`üîë DeepSeek intent detection: "${content}"`);
+        console.log(`Ì†ΩÌ¥ë DeepSeek intent detection: "${content}"`);
 
         // Parse JSON response
         const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -302,7 +303,7 @@ Response:`;
 // Regex-based intent detection (fallback)
 function detectIntentWithRegex(userMessage) {
     const lowerMsg = userMessage.toLowerCase();
-    
+
     // General topics
     if (/\b(shipping|delivery|ship)\b/.test(lowerMsg)) {
         return { intent: 'shipping', product: null };
@@ -345,67 +346,67 @@ function detectIntentWithRegex(userMessage) {
 
 // ------------------- Direct knowledge lookup ---------------------------
 async function quickKnowledgeLookup(userMessage, apiKey = null, userId = null, phoneNumber = null) {
-    console.log(`üìö === DIRECT LOOKUP ===`);
+    console.log(`Ì†ΩÌ≥ö === DIRECT LOOKUP ===`);
     const kb = getKnowledge();
     const lowerMsg = userMessage.toLowerCase();
     const productNames = Object.keys(kb.products);
 
     // Try LLM-based intent detection first
     let intentResult = await detectIntentWithLLM(userMessage, apiKey);
-    
+
     // Fallback to regex if LLM fails or returns null
     if (!intentResult) {
         intentResult = detectIntentWithRegex(userMessage);
-        console.log(`üìö Using regex intent detection: ${intentResult.intent}, product: ${intentResult.product}`);
+        console.log(`Ì†ΩÌ≥ö Using regex intent detection: ${intentResult.intent}, product: ${intentResult.product}`);
     } else {
-        console.log(`üìö Using LLM intent detection: ${intentResult.intent}, product: ${intentResult.product}`);
+        console.log(`Ì†ΩÌ≥ö Using LLM intent detection: ${intentResult.intent}, product: ${intentResult.product}`);
     }
 
     const { intent, product: llmProduct } = intentResult;
 
     // Handle general topics (no product needed)
     if (['shipping', 'returns', 'payment'].includes(intent)) {
-        console.log(`üìö ‚úì General: ${intent}`);
+        console.log(`Ì†ΩÌ≥ö ‚úì General: ${intent}`);
         return kb.general?.[intent] || null;
     }
 
     // Use LLM-detected product if available, otherwise fall back to regex detection or context
     let matchedProduct = llmProduct || findLastProductName(userMessage, productNames);
-    
+
     // If still no product found, check context (last mentioned product)
     if (!matchedProduct && intent === 'price') {
         const lastProduct = getLastMentionedProduct();
         if (lastProduct) {
-            console.log(`üìö [DEBUG] Using context: last mentioned product = "${lastProduct}"`);
+            console.log(`Ì†ΩÌ≥ö [DEBUG] Using context: last mentioned product = "${lastProduct}"`);
             // Convert slug back to product name for lookup
             for (const [productName, productData] of Object.entries(kb.products)) {
                 const slug = getPriceApiSlug(productName);
                 if (slug === lastProduct) {
                     matchedProduct = productName;
-                    console.log(`üìö [DEBUG] Resolved context slug "${lastProduct}" to product name "${matchedProduct}"`);
+                    console.log(`Ì†ΩÌ≥ö [DEBUG] Resolved context slug "${lastProduct}" to product name "${matchedProduct}"`);
                     break;
                 }
             }
         }
     }
-    
+
     if (!matchedProduct) {
-        console.log('üìö ‚úó No known product detected');
+        console.log('Ì†ΩÌ≥ö ‚úó No known product detected');
         return null;
     }
 
-    console.log(`üìö Matched product: "${matchedProduct}"`);
-    console.log(`üìö [DEBUG] Intent detected: ${intent}`);
-    
+    console.log(`Ì†ΩÌ≥ö Matched product: "${matchedProduct}"`);
+    console.log(`Ì†ΩÌ≥ö [DEBUG] Intent detected: ${intent}`);
+
     // First try direct lookup
     let product = kb.products[matchedProduct];
-    console.log(`üìö [DEBUG] Product object exists (direct): ${!!product}`);
-    console.log(`üìö [DEBUG] Looking for: "${matchedProduct}"`);
-    console.log(`üìö [DEBUG] Available products: ${Object.keys(kb.products).join(', ')}`);
-    
+    console.log(`Ì†ΩÌ≥ö [DEBUG] Product object exists (direct): ${!!product}`);
+    console.log(`Ì†ΩÌ≥ö [DEBUG] Looking for: "${matchedProduct}"`);
+    console.log(`Ì†ΩÌ≥ö [DEBUG] Available products: ${Object.keys(kb.products).join(', ')}`);
+
     // If not found, try to find a product that contains the matched name
     if (!product) {
-        console.log(`üîç [DEBUG] Direct lookup failed, trying partial match for "${matchedProduct}"...`);
+        console.log(`Ì†ΩÌ¥ç [DEBUG] Direct lookup failed, trying partial match for "${matchedProduct}"...`);
         const lowerMatched = matchedProduct.toLowerCase();
         let foundPartial = false;
         for (const [productName, productData] of Object.entries(kb.products)) {
@@ -413,7 +414,7 @@ async function quickKnowledgeLookup(userMessage, apiKey = null, userId = null, p
             // Check if matched product is contained in the actual product name
             const match1 = lowerProductName.includes(lowerMatched);
             const match2 = lowerMatched.includes(lowerProductName);
-            console.log(`   üîç Checking "${productName}": includes("${lowerMatched}")=${match1}, "${lowerMatched}".includes="${match2}"`);
+            console.log(`   Ì†ΩÌ¥ç Checking "${productName}": includes("${lowerMatched}")=${match1}, "${lowerMatched}".includes="${match2}"`);
             if (match1 || match2) {
                 console.log(`‚úÖ [DEBUG] Found partial match: "${matchedProduct}" ‚Üí "${productName}"`);
                 product = productData;
@@ -425,7 +426,7 @@ async function quickKnowledgeLookup(userMessage, apiKey = null, userId = null, p
             console.log(`‚ùå [DEBUG] No partial match found for "${matchedProduct}"`);
         }
     }
-    
+
     if (!product) {
         console.log(`‚ùå [DEBUG] Product "${matchedProduct}" not found in knowledge base`);
         return null;
@@ -434,25 +435,25 @@ async function quickKnowledgeLookup(userMessage, apiKey = null, userId = null, p
     // --- Direct field answers (new structured fields) ---
     // Price - NOW FETCHES FROM API INSTEAD OF KNOWLEDGE BASE
     if (intent === 'price' || /\b(price|cost|how much|money)\b/.test(lowerMsg)) {
-        
+
         // Get user's phone number to determine country/currency
         // Priority: 1) Passed phoneNumber parameter, 2) Cache lookup by userId
         let phoneNumberForLookup = phoneNumber || null;
-        
-        
+
+
         if (!phoneNumberForLookup && userId) {
             phoneNumberForLookup = getPhoneNumber(userId);
-            
+
             // Debug: Show cache contents for this user
             const { getContact } = require('../utils/contactCache');
             const contactData = getContact(userId);
         } else if (phoneNumberForLookup) {
         } else {
         }
-        
-        
+
+
         // CRITICAL: Ensure apiKey is passed to getProductPrice
-        
+
         // Check if user specified a currency/country in their message
         let forcedCurrency = null;
         const currencyMatch = lowerMsg.match(/\b(myr|rm|malaysia|singapore|sgd|usd|bnd|hkd|idr|twd)\b/i);
@@ -474,20 +475,20 @@ async function quickKnowledgeLookup(userMessage, apiKey = null, userId = null, p
                 forcedCurrency = 'TWD';
             }
         }
-        
+
         // Fetch price from API (with optional forced currency)
         const priceInfo = await getProductPrice(matchedProduct, phoneNumberForLookup, apiKey, forcedCurrency);
-        
+
         if (priceInfo) {
             console.log(`‚úÖ Price fetched from API successfully`);
             console.log(`   Formatted response preview: "${formatPriceResponse(matchedProduct, priceInfo, forcedCurrency).substring(0, 100)}..."`);
-            
+
             // Check if requested currency was available
             if (forcedCurrency && priceInfo.currency !== forcedCurrency) {
                 console.log(`   ‚ö†Ô∏è Requested currency ${forcedCurrency} not available, used ${priceInfo.currency} instead`);
             }
         }
-        
+
         if (priceInfo && priceInfo.prices && priceInfo.prices.length > 0) {
             const formattedResponse = formatPriceResponse(matchedProduct, priceInfo, forcedCurrency);
             return formattedResponse;
@@ -499,7 +500,7 @@ async function quickKnowledgeLookup(userMessage, apiKey = null, userId = null, p
 
     // Dosage / how to take / before/after meal
     if (intent === 'dosage' || /\b(dosage|how (much|many)|take|consume|before|after).{0,15}\b(meal|food|eat)\b/i.test(lowerMsg)) {
-        console.log('üìö Checking dosage/meal timing...');
+        console.log('Ì†ΩÌ≥ö Checking dosage/meal timing...');
         if (typeof product.dosage === 'object') {
             const parts = Object.entries(product.dosage)
                 .filter(([key]) => key !== 'general')
@@ -515,7 +516,7 @@ async function quickKnowledgeLookup(userMessage, apiKey = null, userId = null, p
 
     // Benefits
     if (intent === 'benefits' || /\b(benefits?|good for|does it|help|summary)\b/.test(lowerMsg)) {
-        console.log('üìö Checking benefits...');
+        console.log('Ì†ΩÌ≥ö Checking benefits...');
         if (Array.isArray(product.benefits) && product.benefits.length) {
             return `Benefits of ${matchedProduct}: ${product.benefits.join(', ')}.`;
         }
@@ -526,7 +527,7 @@ async function quickKnowledgeLookup(userMessage, apiKey = null, userId = null, p
 
     // Ingredients
     if (intent === 'ingredients' || /\b(ingredients?|contains?|made of|formulation)\b/.test(lowerMsg)) {
-        console.log('üìö Checking ingredients...');
+        console.log('Ì†ΩÌ≥ö Checking ingredients...');
         if (Array.isArray(product.ingredients) && product.ingredients.length) {
             return `${matchedProduct} contains: ${product.ingredients.join(', ')}.`;
         }
@@ -537,7 +538,7 @@ async function quickKnowledgeLookup(userMessage, apiKey = null, userId = null, p
 
     // Suitability (who can/cannot consume)
     if (intent === 'suitability' || /\b(suitable|who can|who cannot|women|men|children|adult|pregnant|nursing)\b/.test(lowerMsg)) {
-        console.log('üìö Checking suitability...');
+        console.log('Ì†ΩÌ≥ö Checking suitability...');
         let answer = '';
         if (product.who_can_consume) answer += `Suitable for: ${product.who_can_consume}. `;
         if (product.who_cannot_consume) answer += `Not recommended for: ${product.who_cannot_consume}.`;
@@ -556,7 +557,7 @@ async function quickKnowledgeLookup(userMessage, apiKey = null, userId = null, p
 
     // Retail outlets
     if (intent === 'retail_outlets' || /\b(where to buy|retail|outlets|store|pharmacy|guardian|watsons)\b/.test(lowerMsg)) {
-        console.log('üìö Checking retail outlets...');
+        console.log('Ì†ΩÌ≥ö Checking retail outlets...');
         if (Array.isArray(product.retail_outlets) && product.retail_outlets.length) {
             return `${matchedProduct} available at: ${product.retail_outlets.join(', ')}.`;
         }
@@ -564,11 +565,11 @@ async function quickKnowledgeLookup(userMessage, apiKey = null, userId = null, p
 
     // Q&A direct match
     if (Array.isArray(product.qa) && product.qa.length) {
-        console.log('üìö Checking Q&A...');
+        console.log('Ì†ΩÌ≥ö Checking Q&A...');
         for (const pair of product.qa) {
             const similarity = jaccardSimilarity(lowerMsg, pair.question.toLowerCase());
             if (similarity > 0.5) {
-                console.log(`üìö Q&A match (${similarity.toFixed(2)}): "${pair.question}"`);
+                console.log(`Ì†ΩÌ≥ö Q&A match (${similarity.toFixed(2)}): "${pair.question}"`);
                 return pair.answer;
             }
         }
@@ -605,7 +606,7 @@ async function quickKnowledgeLookup(userMessage, apiKey = null, userId = null, p
         }
     }
 
-    console.log('üìö ‚úó No direct pattern matched');
+    console.log('Ì†ΩÌ≥ö ‚úó No direct pattern matched');
     return null;
 }
 
@@ -714,7 +715,7 @@ Example responses for location requests:
 }
 
 async function callDeepSeek(messages, apiKey) {
-    console.log(`ü§ñ Calling DeepSeek API with ${messages.length} messages...`);
+    console.log(`Ì†æÌ¥ñ Calling DeepSeek API with ${messages.length} messages...`);
     if (!apiKey) {
         console.error('‚ùå No API key provided');
         return null;
@@ -727,7 +728,7 @@ async function callDeepSeek(messages, apiKey) {
             max_tokens: 500
         }, { headers: { 'Authorization': `Bearer ${apiKey}` }, timeout: 20000 });
         const content = response.data.choices[0].message.content;
-        console.log(`ü§ñ DeepSeek response (${content.length} chars): "${content.substring(0, 150)}..."`);
+        console.log(`Ì†æÌ¥ñ DeepSeek response (${content.length} chars): "${content.substring(0, 150)}..."`);
         return content;
     } catch (err) {
         console.error('‚ùå DeepSeek API error:', err.message);
@@ -759,60 +760,105 @@ async function callDeepSeekWithRetry(messages, apiKey, maxRetries = 3) {
 // Returns: { text: string, imageUrl: string|null, productName: string|null }
 async function generateResponse(userMessage, _, apiKey, history = [], userId = null, phoneNumber = null) {
     console.log(`\n${'='.repeat(60)}`);
-    console.log(`üí¨ NEW QUERY: "${userMessage}"`);
-    console.log(`üìú History length: ${history.length} messages`);
+    console.log(`Ì†ΩÌ≤¨ NEW QUERY: "${userMessage}"`);
+    console.log(`Ì†ΩÌ≥ú History length: ${history.length} messages`);
     console.log(`${'='.repeat(60)}`);
-    console.log(`üìû Phone number passed to generateResponse: ${phoneNumber || 'NOT PROVIDED'}`);
+    console.log(`Ì†ΩÌ≥û Phone number passed to generateResponse: ${phoneNumber || 'NOT PROVIDED'}`);
 
     const kb = getKnowledge();
     const productNames = Object.keys(kb.products);
 
-    // ==================== PRICE QUERY ANALYSIS (Like Store Locator) ====================
-    // Analyze price queries early to extract product and currency
-    // This must happen BEFORE store locator check to avoid misrouting
-    const isPriceQuery = /\b(price|cost|how much|money)\b/i.test(userMessage) ||
+    // ==================== LLM INTENT ANALYSIS (State Machine) ====================
+    // Use LLM-driven intent manager for natural conversation flow
+    let intentResult = null;
+    let actionResponse = null;
+
+    if (userId) {
+        console.log(`Ì†æÌ∑† [INTENT MANAGER] Processing with state machine...`);
+
+        // Convert history to format expected by intent manager
+        const conversationHistory = history.map(msg => ({
+            sender: msg.fromMe ? 'bot' : 'user',
+            text: msg.body || msg.text || ''
+        }));
+
+        // Process intent with state machine
+        intentResult = await processIntent(userMessage, userId, apiKey, productNames, conversationHistory);
+
+        console.log(`Ì†ºÌæØ [INTENT MANAGER] Result: intent=${intentResult.intent}, action=${intentResult.action}, state=${intentResult.state}`);
+
+        // Generate action response if needed
+        if (intentResult.action && intentResult.action !== 'execute') {
+            actionResponse = generateActionResponse(intentResult.action, intentResult.intent, intentResult.context);
+
+            if (actionResponse && !actionResponse.shouldContinue) {
+                console.log(`Ì†ΩÌ≤¨ [INTENT MANAGER] Returning action response: ${actionResponse.text.substring(0, 100)}...`);
+                return {
+                    text: actionResponse.text,
+                    imageUrl: null,
+                    productName: intentResult.context?.product || null
+                };
+            }
+        }
+
+        // Update local variables based on intent context
+        if (intentResult.context?.product && !intentResult.detectedProduct) {
+            intentResult.detectedProduct = intentResult.context.product;
+        }
+    } else {
+        console.log(`‚ö†Ô∏è [INTENT MANAGER] No userId, using stateless processing`);
+    }
+    // ==================== END INTENT MANAGER ====================
+
+    // Use intent result if available, otherwise fall back to legacy price query detection
+    const isPriceQuery = intentResult?.intent === 'price_check' ||
+                         /\b(price|cost|how much|money)\b/i.test(userMessage) ||
                          /\b(myr|rm|malaysia|singapore|sgd|usd|bnd|hkd|idr|twd)\b/i.test(userMessage) ||
                          /\b(in|at|for)\s+(malaysia|singapore|usa|brunei|hongkong|indonesia|taiwan)\b/i.test(userMessage);
-    
+
+    // Use detected product from intent manager if available
+    let intentDetectedProduct = intentResult?.detectedProduct || null;
+
     if (isPriceQuery) {
-        
-        
-        // Step 1: Detect if user mentioned a NEW product (replaces last product)
-        let detectedProduct = null;
-        const productsInMsg = findAllProductNames(userMessage, productNames);
-        if (productsInMsg.length > 0) {
-            detectedProduct = findLastProductName(userMessage, productNames);
-            
-            // Update context: new product replaces old product
-            const slug = getProductSlug(detectedProduct);
-            trackMentionedProduct(slug);
+
+        // Use product from intent manager if available, otherwise use legacy detection
+        let detectedProduct = intentDetectedProduct;
+        if (!detectedProduct) {
+            const productsInMsg = findAllProductNames(userMessage, productNames);
+            if (productsInMsg.length > 0) {
+                detectedProduct = findLastProductName(userMessage, productNames);
+
+                // Update context: new product replaces old product
+                const slug = getProductSlug(detectedProduct);
+                trackMentionedProduct(slug);
+            }
         }
-        
+
         // Step 2: If no new product, use last mentioned product
         let productToUse = detectedProduct;
         if (!productToUse) {
             const lastProduct = getLastMentionedProduct();
             if (lastProduct) {
                 productToUse = lastProduct;
-                
+
             }
         }
-        
+
         // Step 3: If still no product, ask user to specify
         if (!productToUse) {
-            
+
             return {
-                text: "Could you please specify which product you'd like to know the price for? üòä\n\nFor example: *BioNatto Plus*, *GlucoPal*, *AshiSlim Plus*, etc.",
+                text: "Could you please specify which product you'd like to know the price for? Ì†ΩÌ∏ä\n\nFor example: *BioNatto Plus*, *GlucoPal*, *AshiSlim Plus*, etc.",
                 imageUrl: null,
                 productName: null
             };
         }
-        
+
         // Step 4: Extract forced currency from message
         let forcedCurrency = null;
         const currencyMatch = userMessage.match(/\b(MYR|RM|SGD|USD|BND|HKD|IDR|TWD)\b/i);
         const countryMatch = userMessage.match(/\b(malaysia|singapore|usa|brunei|hongkong|indonesia|taiwan)\b/i);
-        
+
         if (currencyMatch) {
             forcedCurrency = currencyMatch[0].toUpperCase();
             if (forcedCurrency === 'RM') forcedCurrency = 'MYR';
@@ -828,43 +874,43 @@ async function generateResponse(userMessage, _, apiKey, history = [], userId = n
             };
             forcedCurrency = countryMap[countryMatch[0].toLowerCase()];
         }
-        
-        
-        
+
+
+
         // Step 5: Call price API with resolved product and currency
         try {
             const priceInfo = await getProductPrice(productToUse, phoneNumber, apiKey, forcedCurrency);
-            
+
             if (priceInfo && priceInfo.currency && priceInfo.prices && priceInfo.prices.length > 0) {
                 const formattedResponse = formatPriceResponse(productToUse, priceInfo, forcedCurrency);
-                
-                
+
+
                 // Ensure product is tracked for image
                 if (!detectedProduct) {
                     trackMentionedProduct(productToUse);
                 }
-                
+
                 return {
                     text: formattedResponse,
                     imageUrl: productToUse,
                     productName: typeof productToUse === 'string' ? findLastProductName(productToUse, productNames) || productToUse : productToUse
                 };
             } else {
-                
+
             }
         } catch (err) {
             console.error(`‚ö†Ô∏è [PRICE] Error: ${err.message}`);
         }
-        
+
         // If we reach here, API call failed - continue to normal processing
     } else {
         // ==================== STORE LOCATOR CHECK ====================
         // Check if this is a store/location query using LLM for better context detection
-        console.log(`üìç [STORE LOCATOR] Checking if this is a store query...`);
+        console.log(`Ì†ΩÌ≥ç [STORE LOCATOR] Checking if this is a store query...`);
         const llmCheck = await isStoreQueryWithLLM(userMessage, apiKey);
 
         if (llmCheck.isStoreQuery) {
-            console.log(`üìç [STORE LOCATOR] Store query detected (${llmCheck.reasoning})`);
+            console.log(`Ì†ΩÌ≥ç [STORE LOCATOR] Store query detected (${llmCheck.reasoning})`);
 
             try {
                 // Use LLM-based store finder (handles location detection + store lookup + response generation)
@@ -872,7 +918,7 @@ async function generateResponse(userMessage, _, apiKey, history = [], userId = n
 
                 // If needs location, ask for it
                 if (storeResult.needsLocation) {
-                    console.log(`üìç [STORE LOCATOR] No location provided - asking user`);
+                    console.log(`Ì†ΩÌ≥ç [STORE LOCATOR] No location provided - asking user`);
                     return {
                         text: storeResult.text,
                         imageUrl: null,
@@ -882,14 +928,14 @@ async function generateResponse(userMessage, _, apiKey, history = [], userId = n
 
                 // If error (e.g., no product identified), continue to AI
                 if (storeResult.error) {
-                    console.log(`üìç [STORE LOCATOR] Error: ${storeResult.text}`);
+                    console.log(`Ì†ΩÌ≥ç [STORE LOCATOR] Error: ${storeResult.text}`);
                     // Clear pending since we're giving up on store lookup
                     clearPendingProduct();
                     // Continue to AI for help
                 }
                 // If noContext (no product context), still return message without falling through
                 else if (storeResult.noContext) {
-                    console.log(`üìç [STORE LOCATOR] No product context - returning message`);
+                    console.log(`Ì†ΩÌ≥ç [STORE LOCATOR] No product context - returning message`);
                     return {
                         text: storeResult.text,
                         imageUrl: null,
@@ -900,14 +946,14 @@ async function generateResponse(userMessage, _, apiKey, history = [], userId = n
                 else if (storeResult.success) {
                     // If no stores in that area, still return the message - don't fall through to TIER 1.5
                     if (storeResult.noStoresInArea) {
-                        console.log(`üìç [STORE LOCATOR] No stores in area - returning message`);
+                        console.log(`Ì†ΩÌ≥ç [STORE LOCATOR] No stores in area - returning message`);
                         return {
                             text: storeResult.text,
                             imageUrl: null,
                             productName: null
                         };
                     }
-                    console.log(`üìç [STORE LOCATOR] Returning store info`);
+                    console.log(`Ì†ΩÌ≥ç [STORE LOCATOR] Returning store info`);
                     // DON'T clear pending - user might want to change location ("How about in Subang Jaya?")
                     // The store locator marks justCompletedSearch to keep pending for follow-ups
                     return {
@@ -917,12 +963,12 @@ async function generateResponse(userMessage, _, apiKey, history = [], userId = n
                     };
                 }
             } catch (err) {
-                console.error(`üìç [STORE LOCATOR] Error: ${err.message}`);
+                console.error(`Ì†ΩÌ≥ç [STORE LOCATOR] Error: ${err.message}`);
                 clearPendingProduct();
                 // On error, continue to normal processing
             }
         } else {
-            console.log(`üìç [STORE LOCATOR] Not a store query (${llmCheck.reasoning})`);
+            console.log(`Ì†ΩÌ≥ç [STORE LOCATOR] Not a store query (${llmCheck.reasoning})`);
             // User asked something unrelated - clear any pending product
             clearPendingProduct();
         }
@@ -930,7 +976,7 @@ async function generateResponse(userMessage, _, apiKey, history = [], userId = n
     // ==================== END STORE LOCATOR CHECK ====================
 
     // 1. Direct knowledge lookup (TIER 1)
-    console.log(`\nüìö [TIER 1] Checking direct knowledge base...`);
+    console.log(`\nÌ†ΩÌ≥ö [TIER 1] Checking direct knowledge base...`);
     const directAnswer = await quickKnowledgeLookup(userMessage, apiKey, userId, phoneNumber);
     if (directAnswer) {
         console.log(`‚úÖ‚úÖ [TIER 1] SUCCESS - Found direct answer`);
@@ -953,7 +999,7 @@ async function generateResponse(userMessage, _, apiKey, history = [], userId = n
     console.log(`‚û°Ô∏è Proceeding to AI tier...\n`);
 
     // 2. AI tier (TIER 1.5 fallback)
-    console.log(`ü§ñ [TIER 1.5] Calling DeepSeek with knowledge base...`);
+    console.log(`Ì†æÌ¥ñ [TIER 1.5] Calling DeepSeek with knowledge base...`);
 
     // Detect product for brochure inclusion
     let detectedProductForBrochure = null;
@@ -968,7 +1014,7 @@ async function generateResponse(userMessage, _, apiKey, history = [], userId = n
         ...history.slice(-6),  // Use consistent 6 messages for AI tier
         { role: "user", content: userMessage }
     ];
-    console.log(`   üì§ Sending ${messages.length} messages to DeepSeek`);
+    console.log(`   Ì†ΩÌ≥§ Sending ${messages.length} messages to DeepSeek`);
     let reply = await callDeepSeekWithRetry(messages, apiKey);
 
     // Check if AI is uncertain
@@ -980,16 +1026,16 @@ async function generateResponse(userMessage, _, apiKey, history = [], userId = n
         if (reply) {
             console.log(`   AI response: "${reply.substring(0, 100)}..."`);
         }
-        console.log(`üîÅ Starting fallback cascade...\n`);
+        console.log(`Ì†ΩÌ¥Å Starting fallback cascade...\n`);
 
         // ---- HISTORY-BASED PRODUCT DETECTION ----
-        console.log(`üîç [ANALYSIS] Detecting product from message and history...`);
+        console.log(`Ì†ΩÌ¥ç [ANALYSIS] Detecting product from message and history...`);
         let detectedProduct = null;
         const productsInCurrent = findAllProductNames(userMessage, productNames);
         if (productsInCurrent.length > 0) {
             detectedProduct = findLastProductName(userMessage, productNames);
             console.log(`   ‚úÖ Found product in current message: "${detectedProduct}"`);
-            console.log(`   üì¶ All products detected: [${productsInCurrent.join(', ')}]`);
+            console.log(`   Ì†ΩÌ≥¶ All products detected: [${productsInCurrent.join(', ')}]`);
         } else {
             console.log(`   ‚ö†Ô∏è No product in current message, scanning history...`);
             for (let i = history.length - 1; i >= 0; i--) {
@@ -998,7 +1044,7 @@ async function generateResponse(userMessage, _, apiKey, history = [], userId = n
                     if (historyProducts.length > 0) {
                         detectedProduct = findLastProductName(history[i].content, productNames);
                         console.log(`   ‚úÖ Found product in history[${i}]: "${detectedProduct}"`);
-                        console.log(`   üìú History message: "${history[i].content.substring(0, 50)}..."`);
+                        console.log(`   Ì†ΩÌ≥ú History message: "${history[i].content.substring(0, 50)}..."`);
                         break;
                     }
                 }
@@ -1017,7 +1063,7 @@ async function generateResponse(userMessage, _, apiKey, history = [], userId = n
 
             const productUrl = getProductUrl(kb, detectedProduct);
             if (productUrl) {
-                console.log(`\nüìÑ [TIER 2] Fetching product page: ${productUrl}`);
+                console.log(`\nÌ†ΩÌ≥Ñ [TIER 2] Fetching product page: ${productUrl}`);
                 const productPageContent = await fetchProductPageAndLinks(productUrl, 3);
                 if (productPageContent) {
                     console.log(`   ‚úÖ Fetched ${productPageContent.length} chars from product page`);
@@ -1027,7 +1073,7 @@ async function generateResponse(userMessage, _, apiKey, history = [], userId = n
                         ...history.slice(-6),  // Consistent 6 messages
                         { role: "user", content: userMessage }
                     ];
-                    console.log(`   üì§ Sending ${tier15Messages.length} messages to DeepSeek (product page context)`);
+                    console.log(`   Ì†ΩÌ≥§ Sending ${tier15Messages.length} messages to DeepSeek (product page context)`);
                     const tier15Reply = await callDeepSeekWithRetry(tier15Messages, apiKey);
 
                     if (tier15Reply) {
@@ -1055,22 +1101,22 @@ async function generateResponse(userMessage, _, apiKey, history = [], userId = n
         }
 
         // Build search query: DeepSeek keywords + optional product prefix
-        console.log(`\nüîë [ANALYSIS] Extracting search keywords...`);
+        console.log(`\nÌ†ΩÌ¥ë [ANALYSIS] Extracting search keywords...`);
         const deepseekKeywords = await extractKeywordsWithDeepSeek(userMessage, apiKey);
         let searchQuery = deepseekKeywords;
 
         if (detectedProduct) {
             if (!deepseekKeywords.toLowerCase().includes(detectedProduct.toLowerCase())) {
                 searchQuery = detectedProduct + ' ' + deepseekKeywords;
-                console.log(`   üîç Product "${detectedProduct}" added to keywords`);
+                console.log(`   Ì†ΩÌ¥ç Product "${detectedProduct}" added to keywords`);
             } else {
-                console.log(`   üîç Product already in keywords`);
+                console.log(`   Ì†ΩÌ¥ç Product already in keywords`);
             }
         }
-        console.log(`   üìù Final search query: "${searchQuery}"`);
+        console.log(`   Ì†ΩÌ≥ù Final search query: "${searchQuery}"`);
 
         // Tier 3: Website search
-        console.log(`\nüîé [TIER 3] Searching website: dyna-nutrition.com`);
+        console.log(`\nÌ†ΩÌ¥é [TIER 3] Searching website: dyna-nutrition.com`);
         const siteResults = await searchWebsite(searchQuery);
         if (siteResults && siteResults.length > 100) {
             console.log(`   ‚úÖ Found ${siteResults.length} chars of content`);
@@ -1080,7 +1126,7 @@ async function generateResponse(userMessage, _, apiKey, history = [], userId = n
                 ...history.slice(-6),  // Consistent 6 messages
                 { role: "user", content: userMessage }
             ];
-            console.log(`   üì§ Sending ${tier2Messages.length} messages to DeepSeek (website search context)`);
+            console.log(`   Ì†ΩÌ≥§ Sending ${tier2Messages.length} messages to DeepSeek (website search context)`);
             const tier2Reply = await callDeepSeekWithRetry(tier2Messages, apiKey);
 
             if (tier2Reply) {
@@ -1102,7 +1148,7 @@ async function generateResponse(userMessage, _, apiKey, history = [], userId = n
         }
 
         // Tier 4: Internet search (DuckDuckGo)
-        console.log(`\nüåê [TIER 4] Searching internet via DuckDuckGo...`);
+        console.log(`\nÌ†ºÌºê [TIER 4] Searching internet via DuckDuckGo...`);
         const internetResults = await searchInternet(searchQuery);
         if (internetResults) {
             console.log(`   ‚úÖ Found ${internetResults.length} chars from internet`);
@@ -1112,7 +1158,7 @@ async function generateResponse(userMessage, _, apiKey, history = [], userId = n
                 ...history.slice(-6),  // Consistent 6 messages
                 { role: "user", content: userMessage }
             ];
-            console.log(`   üì§ Sending ${tier3Messages.length} messages to DeepSeek (internet context)`);
+            console.log(`   Ì†ΩÌ≥§ Sending ${tier3Messages.length} messages to DeepSeek (internet context)`);
             const tier3Reply = await callDeepSeekWithRetry(tier3Messages, apiKey);
 
             if (tier3Reply) {
