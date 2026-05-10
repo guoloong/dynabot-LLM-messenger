@@ -6,6 +6,7 @@ const { searchWebsite, fetchProductPageAndLinks } = require('../config/botConfig
 const { isStoreQuery, isStoreQueryWithLLM, findStores, fetchProducts, clearPendingProduct, trackMentionedProduct, getLastMentionedProduct } = require('./storeLocator');
 const { getProductPrice, formatPriceResponse, getCurrencyFromPhone, getProductSlug: getPriceApiSlug } = require('./priceApi');
 const { getPhoneNumber } = require('../utils/contactCache');
+const { processIntent, generateActionResponse, clearUserState, INTENT_TYPES } = require('./intentManager');
 
 // Product slug normalization helper
 // Based on actual API slugs from: https://www.dyna-nutrition.com/wp-json/woo-country-price/v1/product-slugs
@@ -767,25 +768,70 @@ async function generateResponse(userMessage, _, apiKey, history = [], userId = n
     const kb = getKnowledge();
     const productNames = Object.keys(kb.products);
 
-    // ==================== PRICE QUERY ANALYSIS (Like Store Locator) ====================
-    // Analyze price queries early to extract product and currency
-    // This must happen BEFORE store locator check to avoid misrouting
-    const isPriceQuery = /\b(price|cost|how much|money)\b/i.test(userMessage) ||
+    // ==================== LLM INTENT ANALYSIS (State Machine) ====================
+    // Use LLM-driven intent manager for natural conversation flow
+    let intentResult = null;
+    let actionResponse = null;
+    
+    if (userId) {
+        console.log(`🧠 [INTENT MANAGER] Processing with state machine...`);
+        
+        // Convert history to format expected by intent manager
+        const conversationHistory = history.map(msg => ({
+            sender: msg.fromMe ? 'bot' : 'user',
+            text: msg.body || msg.text || ''
+        }));
+        
+        // Process intent with state machine
+        intentResult = await processIntent(userMessage, userId, apiKey, productNames, conversationHistory);
+        
+        console.log(`🎯 [INTENT MANAGER] Result: intent=${intentResult.intent}, action=${intentResult.action}, state=${intentResult.state}`);
+        
+        // Generate action response if needed
+        if (intentResult.action && intentResult.action !== 'execute') {
+            actionResponse = generateActionResponse(intentResult.action, intentResult.intent, intentResult.context);
+            
+            if (actionResponse && !actionResponse.shouldContinue) {
+                console.log(`💬 [INTENT MANAGER] Returning action response: ${actionResponse.text.substring(0, 100)}...`);
+                return {
+                    text: actionResponse.text,
+                    imageUrl: null,
+                    productName: intentResult.context?.product || null
+                };
+            }
+        }
+        
+        // Update local variables based on intent context
+        if (intentResult.context?.product && !intentResult.detectedProduct) {
+            intentResult.detectedProduct = intentResult.context.product;
+        }
+    } else {
+        console.log(`⚠️ [INTENT MANAGER] No userId, using stateless processing`);
+    }
+    // ==================== END INTENT MANAGER ====================
+    
+    // Use intent result if available, otherwise fall back to legacy price query detection
+    const isPriceQuery = intentResult?.intent === 'price_check' || 
+                         /\b(price|cost|how much|money)\b/i.test(userMessage) ||
                          /\b(myr|rm|malaysia|singapore|sgd|usd|bnd|hkd|idr|twd)\b/i.test(userMessage) ||
                          /\b(in|at|for)\s+(malaysia|singapore|usa|brunei|hongkong|indonesia|taiwan)\b/i.test(userMessage);
     
+    // Use detected product from intent manager if available
+    let intentDetectedProduct = intentResult?.detectedProduct || null;
+    
     if (isPriceQuery) {
         
-        
-        // Step 1: Detect if user mentioned a NEW product (replaces last product)
-        let detectedProduct = null;
-        const productsInMsg = findAllProductNames(userMessage, productNames);
-        if (productsInMsg.length > 0) {
-            detectedProduct = findLastProductName(userMessage, productNames);
-            
-            // Update context: new product replaces old product
-            const slug = getProductSlug(detectedProduct);
-            trackMentionedProduct(slug);
+        // Use product from intent manager if available, otherwise use legacy detection
+        let detectedProduct = intentDetectedProduct;
+        if (!detectedProduct) {
+            const productsInMsg = findAllProductNames(userMessage, productNames);
+            if (productsInMsg.length > 0) {
+                detectedProduct = findLastProductName(userMessage, productNames);
+                
+                // Update context: new product replaces old product
+                const slug = getProductSlug(detectedProduct);
+                trackMentionedProduct(slug);
+            }
         }
         
         // Step 2: If no new product, use last mentioned product
