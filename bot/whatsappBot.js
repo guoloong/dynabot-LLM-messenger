@@ -4,6 +4,7 @@ const qrcode = require('qrcode-terminal');
 const { generateResponse } = require('../services/deepseek');
 const { getHistory, addMessage, hasProductBeenShown, markProductAsShown } = require('../utils/memory');
 const { setContact, getPhoneNumber } = require('../utils/contactCache');
+const { splitIntoChunks, MAX_CHUNK_SIZE } = require('../utils/llmMessageSplitter');
 
 // Helper function to decode WhatsApp LID to actual phone number
 function decodeLIDtoPhone(lid) {
@@ -26,45 +27,24 @@ function getHandoff() {
     return require('../utils/humanHandoff');
 }
 
-// Split long messages into chunks (WhatsApp limit ~4096 chars)
+// Split long messages using LLM for intelligent chunking
+// Falls back to smart regex splitter if LLM unavailable or fails
 async function sendLongMessage(msg, text, delayMs = 800) {
-    const MAX_LENGTH = 500;
     const chatId = msg.id.remote;
 
     if (!text || text.length === 0) return;
 
-    if (text.length <= MAX_LENGTH) {
-        await msg.reply(text);
+    // Use LLM-based chunking with API key, falls back to regex if needed
+    const apiKey = process.env.DEEPSEEK_API_KEY;
+    const chunks = await splitIntoChunks(text, apiKey);
+
+    if (chunks.length === 1) {
+        await msg.reply(chunks[0]);
         return;
     }
 
-    const chunks = [];
-    const lines = text.split('\n');
-    let currentChunk = '';
+    console.log(`📤 Splitting into ${chunks.length} chunks (limit: ${MAX_CHUNK_SIZE} chars)`);
 
-    for (const line of lines) {
-        if (currentChunk.length + line.length + 1 > MAX_LENGTH) {
-            if (currentChunk.length > 0) {
-                chunks.push(currentChunk.trim());
-                currentChunk = '';
-            }
-            if (line.length > MAX_LENGTH) {
-                for (let i = 0; i < line.length; i += MAX_LENGTH - 50) {
-                    chunks.push(line.substring(i, i + MAX_LENGTH - 50));
-                }
-            } else {
-                currentChunk = line;
-            }
-        } else {
-            currentChunk += (currentChunk.length > 0 ? '\n' : '') + line;
-        }
-    }
-
-    if (currentChunk.trim().length > 0) {
-        chunks.push(currentChunk.trim());
-    }
-
-    console.log(`📤 Splitting long message into ${chunks.length} parts (limit: ${MAX_LENGTH} chars)`);
     for (let i = 0; i < chunks.length; i++) {
         try {
             await client.sendMessage(chatId, chunks[i]);
