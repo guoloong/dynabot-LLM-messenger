@@ -237,6 +237,15 @@ async function analyzeWithLLM(userMessage, history, userId, apiKey) {
     const isFollowUp = ctx?.currentIntent && ctx?.currentIntent !== 'general_inquiry' && ctx?.currentIntent !== 'start';
     const followUpHint = isFollowUp ? `Previous intent was: ${ctx.currentIntent}` : '';
 
+    // IMPORTANT: Special follow-up detection for recommendation context
+    // When ctx.currentIntent = "recommendation" AND product is in context (e.g., BioNatto Plus),
+    // AND user says a simple acknowledgment word (yes, yeah, sure, ok, more, interested),
+    // this means user wants MORE INFO about the previously recommended product
+    let recommendationFollowUpHint = '';
+    if (ctx?.currentIntent === 'recommendation' && ctx?.product) {
+        recommendationFollowUpHint = `CRITICAL: Context shows a product (${ctx.product}) was just recommended. User said: "${userMessage}". If this is an acknowledgment word â†’ they want product INFO â†’ intent="product_info", action="execute", product="${ctx.product}"`;
+    }
+
     const systemPrompt = `You are DynaBot, a health supplement assistant for Dyna-Nutrition.
 
 Decide what the user wants and what action to take.
@@ -264,9 +273,15 @@ When the user says a brief acknowledgment ("yes", "yeah", "sure", "ok", "please"
 
 Common scenarios:
 - Bot asked "Want to know more?" â†’ User wants product details â†’ intent="product_info"
+- Bot asked "Interested to know more?" â†’ User wants product details â†’ intent="product_info"
 - Bot asked "Would you like to check price?" â†’ User wants price â†’ intent="price_check"
 - Bot asked "Interested in where to buy?" â†’ User wants stores â†’ intent="store_locator"
 - Bot asked "Want another option?" â†’ User wants alternative â†’ intent="recommendation"
+
+SPECIAL RULE FOR RECOMMENDATION CONTEXT:
+- If context shows currentIntent="recommendation" AND a product was mentioned (e.g., ${ctx?.product || "BioNatto Plus"})
+- And user says "yes", "yeah", "sure", "ok", "more", "interested" â†’ intent="product_info", action="execute"
+- This is because after recommending a product, user saying "yes" typically means "tell me more about it"
 
 Return: {intent, action, text, product, location}
 
@@ -280,6 +295,7 @@ Context: ${contextStr}${toolContextStr}${toolContextStr2}
 ${msgProductStr}
 ${msgLocationStr}
 ${followUpHint}
+${recommendationFollowUpHint}
 
 IMPORTANT RULES FOR CONTEXT:
 - "How about Malaysia?" when previous was price_check â†’ intent=price_check (they want price for Malaysia)
@@ -404,7 +420,7 @@ function fallbackAnalysis(userMessage, ctx) {
         const lowerMsg = userMessage.toLowerCase();
         if (/\b(yes|yeah|yep|sure|ok|yup|more|details|tell\s*me\s*more|want\s*to\s*know|interested)\b/.test(lowerMsg)) {
             finalIntent = 'product_info';
-            console.log(`ðŸ“Œ [CONV MANAGER] Follow-up: detected "yes" after recommendation â†’ product_info`);
+            console.log(`í ½í³Œ [CONV MANAGER] Follow-up: detected "yes" after recommendation â†’ product_info`);
         }
     }
 
@@ -613,7 +629,7 @@ async function executeTool(analysis, userMessage, userId, apiKey, phoneNumber) {
                         product: recProduct,
                         conversationStage: 'post_recommendation'
                     });
-                    console.log(`ðŸ“Œ [CONV MANAGER] Stored recommendation context: product=${recProduct}`);
+                    console.log(`í ½í³Œ [CONV MANAGER] Stored recommendation context: product=${recProduct}`);
                 }
 
                 return recText;
@@ -648,6 +664,21 @@ async function processMessage(userMessage, history, userId, apiKey, phoneNumber)
     // Ensure we have product/location from context
     if (!analysis.product && ctx?.product) analysis.product = ctx.product;
     if (!analysis.location && ctx?.location) analysis.location = ctx.location;
+
+    // ==================== Post-LLM Follow-Up Detection (Fallback) ====================
+    // Check if user gave a simple acknowledgment ("yes", "yeah", etc.) after recommendation
+    // This is a fallback in case the LLM didn't detect the follow-up pattern
+    const lowerMsg = userMessage.toLowerCase().trim();
+    const isSimpleAck = /^(yes|yeah|yep|sure|ok|yup|more|details|tell\s*me\s*more|interested|yes\s+(please|do|tell))$/i.test(lowerMsg);
+
+    // If previous was recommendation AND context has a product AND user just said "Yes" (or similar)
+    // AND LLM returned recommendation (not product_info), switch to product_info
+    if (ctx?.currentIntent === 'recommendation' && ctx?.product && isSimpleAck && analysis.intent !== 'product_info') {
+        console.log(`í ½í³Œ [CONV MANAGER] Post-LLM Follow-up: "Yes" after recommendation â†’ switching to product_info for ${ctx.product}`);
+        analysis.intent = 'product_info';
+        analysis.action = 'execute';
+        analysis.product = ctx.product; // Ensure product is set from context
+    }
 
     // Step 2: Update context
     updateContext(userId, {
