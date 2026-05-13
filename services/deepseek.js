@@ -603,5 +603,13 @@ module.exports = {
     quickKnowledgeLookup,
     detectIntentWithLLM,
     detectIntentWithRegex,
-    getProductSlug
+    getProductSlug,
+    getProductUrl,
+    getProductImageUrl,
+    buildKnowledgePrompt,
+    callDeepSeek,
+    callDeepSeekWithRetry,
+    searchWebsite,
+    fetchProductPageAndLinks,
+    extractKeywordsWithDeepSeek
 };
