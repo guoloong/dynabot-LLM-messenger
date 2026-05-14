@@ -1,7 +1,7 @@
 // bot/whatsappBot.js
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
-const { generateResponse } = require('../services/deepseek');
+const { generateResponse } = require('../services/conversationManager');
 const { getHistory, addMessage, hasProductBeenShown, markProductAsShown } = require('../utils/memory');
 const { setContact, getPhoneNumber } = require('../utils/contactCache');
 const { splitIntoChunks, MAX_CHUNK_SIZE } = require('../utils/llmMessageSplitter');
@@ -454,10 +454,9 @@ function initWhatsAppBot() {
             const history = getHistory(userId);
             const response = await generateResponse(
                 msgBody,
-                '',
-                process.env.DEEPSEEK_API_KEY,
                 history,
                 userId,
+                process.env.DEEPSEEK_API_KEY,
                 phoneNumberForPrice
             );
 
