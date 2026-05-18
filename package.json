@@ -1,7 +1,7 @@
 {
   "name": "whatsapp-dyna-bot",
-  "version": "3.0.0",
-  "description": "WhatsApp chatbot for Dyna-Nutrition with persistent memory and live search",
+  "version": "4.0.0",
+  "description": "WhatsApp chatbot for Dyna-Nutrition with LLM-based routing to price/store/general responses",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
