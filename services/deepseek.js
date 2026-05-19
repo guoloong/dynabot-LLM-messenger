@@ -219,7 +219,7 @@ function buildGuidelinesPrompt(guidelines) {
 // Build knowledge prompt
 function buildKnowledgePrompt(detectedProduct = null) {
     const kb = getKnowledge();
-    let prompt = `You are DynaBot, the friendly assistant for Dyna-Nutrition.\n\n`;
+    let prompt = `You are DynaBot, the friendly AI nutrition and health expert for Dynamic Nutrition.\n\n`;
 
     for (const [name, product] of Object.entries(kb.products)) {
         prompt += `## ${name}\n`;
