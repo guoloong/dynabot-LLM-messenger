@@ -9,30 +9,18 @@
     "Support Overall Cardiovascular Health",
     "Reduce Cholesterol"
   ],
-  "price": {
-    "singapore": {
-      "1_bottle": 69.90,
-      "2_bottle": 132.80,
-      "3_bottle": 179.00
-    },
-    "malaysia": {
-      "1_bottle": 151.90,
-      "2_bottle": 288.61,
-      "3_bottle": 387.35
-    }
-  },
   "dosage": {
     "therapeutic": "2 capsules twice daily after breakfast & dinner",
     "maintenance": "1-2 capsules once daily after a meal",
     "general": "Take preferably after meals"
   },
   "ingredients": [
-    "Nattokinase NSK-SD® 2000 FU",
-    "French maritime pine bark extract 100mg",
-    "Grape seed extract 100mg"
+    "Nattokinase NSK-SD® 50mg",
+    "French maritime pine bark extract 50mg",
+    "Grape seed extract 50mg"
   ],
-  "who_can_consume": "Adults concerned about blood pressure or circulation.",
-  "who_cannot_consume": "Not specified. Consult a healthcare professional if pregnant, nursing, or on blood‑thinning medication.",
+  "who_can_consume": "Adults concerned about blood pressure, blood circulation, DVT, cholesterol, numbness in hand and legs.",
+  "who_cannot_consume": "Consult a healthcare professional if pregnant or breastfeeding.",
   "url": "https://www.dyna-nutrition.com/product/bionatto-plus/",
   "images": [
     "https://www.dyna-nutrition.com/wp-content/uploads/2026/05/LAZADA-BionattoPlus-2.jpg"
@@ -43,8 +31,32 @@
       "answer": "Usually 6-8 weeks. This is a natural supplement with no side effects."
     },
     {
+      "question": "Can I consume BioNatto Plus if I'm taking blood‑thinning medication",
+      "answer": "Yes, BioNatto Plus does not contain any vitamin K2 which affects blood‑thinning medication. It is safe to consume and we recommend you to consume 1 hour apart from your medicines "
+    },
+    {
+      "question": "Can I consume BioNatto Plus with other supplements like fish oil or CoQ10?",
+      "answer": "Yes, BioNatto Plus is also a health supplement. It can be taken with other health supplements "
+    },
+    {
+      "question": "Is BioNatto Plus safe for the kidneys?",
+      "answer": "Yes, BioNatto Plus is safe and does not affect the kidneys."
+    },
+    {
+      "question": "Is BioNatto Plus safe for long term consumption?",
+      "answer": "Yes, BioNatto Plus is safe and we have many customers taking it for the long term."
+    },
+    {
+      "question": "How long is BioNatto Plus in the market?",
+      "answer": "BioNatto Plus was in the market since 2009."
+    },
+    {
+      "question": "Is BioNatto Plus safe for pregnant ladies?",
+      "answer": "We have not done any safety study for pregnancy. Hence, we do not recommend you to consume during pregnancy."
+    },
+    {
       "question": "Can I take BioNatto Plus with other medications?",
-      "answer": "Consult your doctor, especially if you are on blood‑thinning medication."
+      "answer": "Yes, generally we recommend you to consume 1 hour apart from your medicines"
     }
   ]
 }
