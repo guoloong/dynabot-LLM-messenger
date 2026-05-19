@@ -5,6 +5,9 @@
 const axios = require('axios');
 const { getContext, updatePriceContext, updateStoreContext, updateMentionedProduct, clearPriceContext, clearStoreContext } = require('./contextManager');
 
+// Configuration
+const MAX_HISTORY_MESSAGES = 20;
+
 // Known products list for the LLM
 const KNOWN_PRODUCTS = [
     'bionatto', 'men-guard', 'ashiguard', 'ashislim', 'black-elderberry-juice',
@@ -18,7 +21,7 @@ const KNOWN_PRODUCTS = [
 /**
  * Build conversation context string from history
  */
-function buildConversationContext(history, maxMessages = 10) {
+function buildConversationContext(history, maxMessages = MAX_HISTORY_MESSAGES) {
     if (!history || history.length === 0) return '';
 
     const recentMessages = history.slice(-maxMessages);
@@ -91,6 +94,14 @@ FOLLOW-UP HANDLING:
 - If user says "Where to buy?" and they mentioned a product in history → use that product
 - If user says "How about Malaysia?" after price query → change currency to MYR
 - If user says "How about JB?" after store query → change location to JB
+
+NUMERIC SELECTION HANDLING (critical!):
+- If user sends a single number (1, 2, 3, etc.) or text like "option 2", "the second one", "3 please"
+- Check the conversation history - if the bot recently listed numbered options (e.g., "1. TriCollagen\n2. Tibetan Seaberry\n...")
+- Interpret the number as selecting that option and return the corresponding product
+- Example: User sends "4" and history shows "1. TriCollagen\n2. Tibetan Seaberry\n3. LiveBerries\n4. MarineCal Plus"
+- → Return product=marinecal-plus (or appropriate slug)
+- Return "general" intent but include the selected product
 
 CURRENCY DETECTION:
 - "SGD", "MYR", "IDR", "THB", "PHP", "VND", etc. based on location mentioned
