@@ -4,7 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 const MEMORY_FILE = path.join(__dirname, '..', 'conversations.json');
-const MAX_HISTORY = 10;
+const MAX_HISTORY = 20;
 const MAX_USERS = 1000;
 const EXPIRE_MS = 180 * 24 * 60 * 60 * 1000;
 
