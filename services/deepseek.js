@@ -235,6 +235,13 @@ function buildKnowledgePrompt(detectedProduct = null) {
             }
             if (product.who_can_consume) prompt += `Suitable for: ${product.who_can_consume}\n`;
             if (product.who_cannot_consume) prompt += `Not suitable for: ${product.who_cannot_consume}\n`;
+            // Add Q&A content if available
+            if (Array.isArray(product.qa) && product.qa.length) {
+                const qaText = product.qa
+                    .map(item => `Q: ${item.question}\nA: ${item.answer}`)
+                    .join('\n');
+                prompt += `\nCommon Questions:\n${qaText}\n`;
+            }
         } else {
             prompt += `${product}\n`;
         }
@@ -362,7 +369,7 @@ async function generateResponse(userMessage, _, apiKey, history = []) {
     if (isUncertain) {
         console.log(`[DEEPSEEK] AI uncertain, starting fallback cascade...`);
 
-        // Extract keywords
+        // Extract keywords (Tier 1.5 - preprocessing)
         const deepseekKeywords = await extractKeywordsWithDeepSeek(userMessage, apiKey);
         let searchQuery = deepseekKeywords;
 
@@ -372,8 +379,8 @@ async function generateResponse(userMessage, _, apiKey, history = []) {
             }
         }
 
-        // Try website search
-        console.log(`[DEEPSEEK] Searching website: dyna-nutrition.com`);
+        // Try website search (Tier 2)
+        console.log(`[DEEPSEEK] [TIER 2] Searching website: dyna-nutrition.com`);
         const siteResults = await searchWebsite(searchQuery);
         if (siteResults && siteResults.length > 100) {
             const tier2Prompt = `You are DynaBot. Answer the user based ONLY on the search results below. Start with YES/NO and one sentence.\nUSER: ${userMessage}\nRESULTS: ${siteResults.substring(0, 2000)}`;
@@ -385,13 +392,13 @@ async function generateResponse(userMessage, _, apiKey, history = []) {
             const tier2Reply = await callDeepSeekWithRetry(tier2Messages, apiKey);
 
             if (tier2Reply && !tier2Reply.toLowerCase().includes("cannot find the answer")) {
-                console.log(`[DEEPSEEK] Found answer in website search`);
+                console.log(`[DEEPSEEK] [TIER 2 SUCCESS] Answer found via website search`);
                 return { text: tier2Reply, imageUrl, productName: imageProduct };
             }
         }
 
-        // Try internet search
-        console.log(`[DEEPSEEK] Searching internet via DuckDuckGo...`);
+        // Try internet search (Tier 3)
+        console.log(`[DEEPSEEK] [TIER 3] Searching internet via DuckDuckGo...`);
         const internetResults = await searchInternet(searchQuery);
         if (internetResults) {
             const tier3Prompt = `You are DynaBot. Answer the user based on these internet search results.\nUSER: ${userMessage}\nRESULTS: ${internetResults}`;
@@ -403,16 +410,16 @@ async function generateResponse(userMessage, _, apiKey, history = []) {
             const tier3Reply = await callDeepSeekWithRetry(tier3Messages, apiKey);
 
             if (tier3Reply && !tier3Reply.toLowerCase().includes("cannot find reliable")) {
-                console.log(`[DEEPSEEK] Found answer via internet search`);
+                console.log(`[DEEPSEEK] [TIER 3 SUCCESS] Answer found via internet search`);
                 return { text: tier3Reply, imageUrl, productName: imageProduct };
             }
         }
 
-        console.log(`[DEEPSEEK] All tiers failed, returning fallback message`);
+        console.log(`[DEEPSEEK] [TIER 4] All tiers failed, returning fallback message`);
         return { text: "I'm sorry, I couldn't find an answer. A human representative will be happy to help you.", imageUrl: null, productName: null };
     }
 
-    console.log(`[DEEPSEEK] SUCCESS - Direct response`);
+    console.log(`[DEEPSEEK] [TIER 1 SUCCESS] Direct response from knowledge base`);
     return { text: reply || "I'm having trouble responding right now.", imageUrl, productName: imageProduct };
 }
 
