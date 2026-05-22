@@ -233,6 +233,21 @@ function buildKnowledgePrompt(detectedProduct = null) {
 - NEVER contradict what is stated in the official Q&A or product information
 - Stay in character as DynaBot with a friendly, helpful tone
 
+**OUTPUT FORMAT (CRITICAL):**
+- Use PLAIN TEXT ONLY - do NOT use any markdown formatting
+- Do NOT use **bold**, *italic*, _underscores_, or any other markdown syntax
+- Use emojis to add emphasis and visual interest:
+  - Ì†ΩÌ¥• for powerful/important items
+  - ‚úÖ for lists and checkmarks
+  - Ì†ΩÌ≤™ for strength/health benefits
+  - ‚ö° for energy related content
+  - Ì†ΩÌ≥å for key points and headers
+  - Ì†ΩÌ±® for men-related content
+  - Ì†ΩÌ¥¨ for science/ingredients
+  - Ì†ΩÌ≥ç for locations/store info
+- Structure responses with line breaks and emoji-prefixed headers
+- Example: "Ì†ΩÌ¥• KEY BENEFITS:\n‚úÖ Boosts testosterone\n‚úÖ Increases energy"
+
 `;
 
     for (const [name, product] of Object.entries(kb.products)) {
