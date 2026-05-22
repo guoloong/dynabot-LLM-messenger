@@ -18,8 +18,11 @@ function getSupplementaryInfo(productSlug) {
         return brochureCache.get(productSlug);
     }
 
-    // Try to load from file
+    // Try to load from file - check for .json files (primary) and .txt (fallback)
     const possiblePaths = [
+        path.join(BROCHURES_DIR, `${productSlug}.json`),
+        path.join(BROCHURES_DIR, `${productSlug.toLowerCase()}.json`),
+        path.join(BROCHURES_DIR, `${productSlug.replace(/-/g, '')}.json`),
         path.join(BROCHURES_DIR, `${productSlug}.txt`),
         path.join(BROCHURES_DIR, `${productSlug.toLowerCase()}.txt`),
         path.join(BROCHURES_DIR, `${productSlug.replace(/-/g, '')}.txt`),
@@ -28,7 +31,21 @@ function getSupplementaryInfo(productSlug) {
     for (const filePath of possiblePaths) {
         try {
             if (fs.existsSync(filePath)) {
-                const content = fs.readFileSync(filePath, 'utf8');
+                const rawContent = fs.readFileSync(filePath, 'utf8');
+                let content = rawContent;
+
+                // Parse JSON if applicable
+                if (filePath.endsWith('.json')) {
+                    try {
+                        const jsonData = JSON.parse(rawContent);
+                        // Extract text content - could be a 'content' field, 'text' field, or top-level string
+                        content = jsonData.content || jsonData.text || rawContent;
+                    } catch (parseErr) {
+                        // If JSON parsing fails, use raw content
+                        console.warn(`[BROCHURES] JSON parse failed for ${filePath}, using raw content`);
+                    }
+                }
+
                 brochureCache.set(productSlug, content);
                 return content;
             }
