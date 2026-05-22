@@ -9,6 +9,7 @@ const { getProductPrice, formatPriceResponse } = require('../services/priceApi')
 const { findStores } = require('../services/storeLocator');
 const { getHistory, addMessage } = require('../utils/memory');
 const { splitIntoChunks } = require('../utils/llmMessageSplitter');
+const { stripMarkdownFormatting } = require('../utils/stripMarkdown');
 
 // Messenger Bot class
 class MessengerBot {
@@ -291,8 +292,11 @@ class MessengerBot {
     async sendLongMessage(recipientId, text, delayMs = 1000) {
         if (!text || text.length === 0) return;
 
+        // Strip markdown formatting before sending
+        const cleanText = stripMarkdownFormatting(text);
+
         // Use LLM-based splitting for intelligent chunking
-        const chunks = await splitIntoChunks(text, process.env.DEEPSEEK_API_KEY);
+        const chunks = await splitIntoChunks(cleanText, process.env.DEEPSEEK_API_KEY);
 
         console.log(`[MESSENGER] Splitting message into ${chunks.length} parts`);
 

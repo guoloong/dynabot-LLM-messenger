@@ -10,6 +10,7 @@ const { findStores } = require('../services/storeLocator');
 const { splitIntoChunks } = require('../utils/llmMessageSplitter');
 const { getHistory, addMessage, hasProductBeenShown, markProductAsShown } = require('../utils/memory');
 const { setContact, getPhoneNumber } = require('../utils/contactCache');
+const { stripMarkdownFormatting } = require('../utils/stripMarkdown');
 
 // Helper function to decode WhatsApp LID to actual phone number
 function decodeLIDtoPhone(lid) {
@@ -38,8 +39,11 @@ async function sendLongMessage(msg, text, apiKey = null, delayMs = 800) {
 
     if (!text || text.length === 0) return;
 
+    // Strip markdown formatting before sending
+    const cleanText = stripMarkdownFormatting(text);
+
     // Use LLM-based splitting for intelligent chunking
-    const chunks = await splitIntoChunks(text, apiKey);
+    const chunks = await splitIntoChunks(cleanText, apiKey);
 
     console.log(`[BOT] Splitting message into ${chunks.length} parts`);
     for (let i = 0; i < chunks.length; i++) {
