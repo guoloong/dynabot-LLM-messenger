@@ -60,12 +60,163 @@ function cleanupExpiredSessions() {
 setInterval(cleanupExpiredSessions, 30 * 60 * 1000);
 
 function getSession(userId) {
-    return sessions.get(userId);
+    // Direct lookup
+    const session = sessions.get(userId);
+    if (session) {
+        return session;
+    }
+
+    // For WhatsApp LID format - try to find matching session by phone
+    const cleanUserId = userId.replace(/[^0-9]/g, '');
+    if (cleanUserId.length < 7) return null;
+
+    // Load contact cache to build phone -> userId mapping
+    let contactCache = {};
+    try {
+        const cacheFile = path.join(__dirname, '..', 'contact_cache.json');
+        if (fs.existsSync(cacheFile)) {
+            contactCache = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
+        }
+    } catch (e) {}
+
+    // Build phone -> userId map from contact cache
+    const phoneToCachedUser = {};
+    for (const [cachedUserId, contact] of Object.entries(contactCache)) {
+        if (contact && contact.phoneNumber) {
+            const phone = contact.phoneNumber.replace(/[^0-9]/g, '');
+            phoneToCachedUser[phone] = cachedUserId;
+        }
+    }
+
+    // Get user's phone from contact cache using their userId
+    let userPhone = null;
+    for (const [phone, cachedId] of Object.entries(phoneToCachedUser)) {
+        if (cachedId === userId) {
+            userPhone = phone;
+            break;
+        }
+    }
+
+    console.log(`[HANDOFF] getSession checking: userId=${userId}, cleanUserId=${cleanUserId}, userPhone=${userPhone}`);
+
+    // Check all WhatsApp sessions for phone match
+    for (const [storedId, storedSession] of sessions.entries()) {
+        if (storedSession.platform === PLATFORM_WHATSAPP) {
+            const storedPhone = storedSession.phoneNumber ? storedSession.phoneNumber.replace(/[^0-9]/g, '') : '';
+            if (!storedPhone) continue;
+
+            console.log(`[HANDOFF] getSession comparing with: storedId=${storedId}, storedPhone=${storedPhone}`);
+
+            // Match if any of these conditions are true:
+            // 1. Stored phone matches user's phone from contact cache
+            // 2. Stored phone contains last 8 of incoming LID
+            // 3. User's phone from cache contains stored phone
+            // 4. Stored phone is contained in incoming LID (phone@c.us vs LID@c.us)
+            // 5. Last 8 of stored phone matches last 8 of incoming LID
+            if (userPhone && storedPhone === userPhone) {
+                console.log(`[HANDOFF] getSession: MATCH (exact userPhone)`);
+                return storedSession;
+            }
+            if (storedPhone.includes(cleanUserId.slice(-8))) {
+                console.log(`[HANDOFF] getSession: MATCH (stored contains LID last 8)`);
+                return storedSession;
+            }
+            if (userPhone && storedPhone.includes(userPhone)) {
+                console.log(`[HANDOFF] getSession: MATCH (stored contains userPhone)`);
+                return storedSession;
+            }
+            if (cleanUserId.includes(storedPhone)) {
+                console.log(`[HANDOFF] getSession: MATCH (LID contains stored)`);
+                return storedSession;
+            }
+            if (storedPhone.slice(-8) === cleanUserId.slice(-8)) {
+                console.log(`[HANDOFF] getSession: MATCH (last 8 match)`);
+                return storedSession;
+            }
+        }
+    }
+
+    return null;
 }
 
 function isHumanMode(userId) {
+    // Direct lookup
     const session = sessions.get(userId);
-    return session && session.mode === 'human';
+    if (session && session.mode === 'human') {
+        return true;
+    }
+
+    // For WhatsApp LID format - try to match by phone
+    const cleanUserId = userId.replace(/[^0-9]/g, '');
+    if (cleanUserId.length < 7) return false;
+
+    // Load contact cache to build phone -> userId mapping
+    let contactCache = {};
+    try {
+        const cacheFile = path.join(__dirname, '..', 'contact_cache.json');
+        if (fs.existsSync(cacheFile)) {
+            contactCache = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
+        }
+    } catch (e) {}
+
+    // Build phone -> userId map from contact cache
+    const phoneToCachedUser = {};
+    for (const [cachedUserId, contact] of Object.entries(contactCache)) {
+        if (contact && contact.phoneNumber) {
+            const phone = contact.phoneNumber.replace(/[^0-9]/g, '');
+            phoneToCachedUser[phone] = cachedUserId;
+        }
+    }
+
+    // Get user's phone from contact cache using their userId
+    let userPhone = null;
+    for (const [phone, cachedId] of Object.entries(phoneToCachedUser)) {
+        if (cachedId === userId) {
+            userPhone = phone;
+            break;
+        }
+    }
+
+    console.log(`[HANDOFF] isHumanMode checking: userId=${userId}, cleanUserId=${cleanUserId}, userPhone=${userPhone}`);
+
+    // Check all WhatsApp human sessions for phone match
+    for (const [storedId, storedSession] of sessions.entries()) {
+        if (storedSession.platform === PLATFORM_WHATSAPP && storedSession.mode === 'human') {
+            const storedPhone = storedSession.phoneNumber ? storedSession.phoneNumber.replace(/[^0-9]/g, '') : '';
+            if (!storedPhone) continue;
+
+            console.log(`[HANDOFF] isHumanMode comparing with: storedId=${storedId}, storedPhone=${storedPhone}`);
+
+            // Match if any of these conditions are true:
+            // 1. Stored phone matches user's phone from contact cache
+            // 2. Stored phone contains last 8 of incoming LID
+            // 3. User's phone from cache contains stored phone
+            // 4. Stored phone is contained in incoming LID (phone@c.us vs LID@c.us)
+            // 5. Last 8 of stored phone matches last 8 of incoming LID
+            if (userPhone && storedPhone === userPhone) {
+                console.log(`[HANDOFF] isHumanMode: MATCH (exact userPhone)`);
+                return true;
+            }
+            if (storedPhone.includes(cleanUserId.slice(-8))) {
+                console.log(`[HANDOFF] isHumanMode: MATCH (stored contains LID last 8)`);
+                return true;
+            }
+            if (userPhone && storedPhone.includes(userPhone)) {
+                console.log(`[HANDOFF] isHumanMode: MATCH (stored contains userPhone)`);
+                return true;
+            }
+            if (cleanUserId.includes(storedPhone)) {
+                console.log(`[HANDOFF] isHumanMode: MATCH (LID contains stored)`);
+                return true;
+            }
+            if (storedPhone.slice(-8) === cleanUserId.slice(-8)) {
+                console.log(`[HANDOFF] isHumanMode: MATCH (last 8 match)`);
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 function setHumanMode(userId, agentId = 'human', phoneNumber = null, platform = PLATFORM_WHATSAPP, facebookName = null) {
