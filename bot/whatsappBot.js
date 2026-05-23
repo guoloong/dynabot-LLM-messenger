@@ -3,7 +3,9 @@
 
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
-const { generateResponse } = require('../services/deepseek');
+const {
+    generateResponse
+} = require('../services/deepseek');
 const { routeMessage } = require('../services/messageRouter');
 const { getProductPrice, formatPriceResponse } = require('../services/priceApi');
 const { findStores } = require('../services/storeLocator');
@@ -11,6 +13,7 @@ const { splitIntoChunks } = require('../utils/llmMessageSplitter');
 const { getHistory, addMessage, hasProductBeenShown, markProductAsShown } = require('../utils/memory');
 const { setContact, getPhoneNumber } = require('../utils/contactCache');
 const { stripMarkdownFormatting } = require('../utils/stripMarkdown');
+const { PLATFORM_WHATSAPP } = require('../utils/humanHandoff');
 
 // Helper function to decode WhatsApp LID to actual phone number
 function decodeLIDtoPhone(lid) {
@@ -404,7 +407,7 @@ function initWhatsAppBot() {
                 phoneNumber = userId.replace(/@.*$/, '').replace(/[^0-9]/g, '');
             }
 
-            handoff.setHumanMode(userId, 'escalation', phoneNumber);
+            handoff.setHumanMode(userId, 'escalation', phoneNumber, PLATFORM_WHATSAPP, null);
             await msg.reply('Connecting to human agent...');
             return;
         }

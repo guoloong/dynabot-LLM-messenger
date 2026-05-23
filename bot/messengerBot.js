@@ -1,5 +1,5 @@
 // bot/messengerBot.js
-// Facebook Messenger bot with DeepSeek AI integration
+// Facebook Messenger bot with DeepSeek AI integration and human handoff support
 
 const express = require('express');
 const axios = require('axios');
@@ -10,6 +10,19 @@ const { findStores } = require('../services/storeLocator');
 const { getHistory, addMessage } = require('../utils/memory');
 const { splitIntoChunks } = require('../utils/llmMessageSplitter');
 const { stripMarkdownFormatting } = require('../utils/stripMarkdown');
+const {
+    isHumanMode, setHumanMode, setBotMode,
+    getActiveSessions, getSessionDisplayName,
+    closeSessionByName, closeSessionByPhone,
+    shouldEscalate, isWithinWorkingHours, getWorkingHoursMessage,
+    PLATFORM_MESSENGER
+} = require('../utils/humanHandoff');
+
+// Get fresh handoff module instance
+function getHandoff() {
+    delete require.cache[require.resolve('../utils/humanHandoff')];
+    return require('../utils/humanHandoff');
+}
 
 // Messenger Bot class
 class MessengerBot {
@@ -90,6 +103,27 @@ class MessengerBot {
         });
     }
 
+    // Fetch Facebook user profile (first name)
+    async fetchFacebookUserName(psid) {
+        try {
+            const response = await axios.get(
+                `https://graph.facebook.com/v21.0/${psid}`,
+                {
+                    params: {
+                        fields: 'first_name,last_name',
+                        access_token: this.PAGE_ACCESS_TOKEN
+                    }
+                }
+            );
+            const firstName = response.data.first_name || '';
+            const lastName = response.data.last_name || '';
+            return (firstName + ' ' + lastName).trim() || null;
+        } catch (err) {
+            console.error('[MESSENGER] Failed to fetch user name:', err.message);
+            return null;
+        }
+    }
+
     // Handle incoming text message
     async handleMessage(senderPsid, receivedMessage) {
         // Skip echoes
@@ -116,6 +150,140 @@ class MessengerBot {
             return;
         }
         this.userCooldowns.set(senderPsid, now);
+
+        // ========================================
+        // ADMIN COMMANDS (processed before human handoff)
+        // ========================================
+        const lowerMsg = messageText.toLowerCase();
+
+        // !status - List active sessions (all platforms, like WhatsApp)
+        if (lowerMsg === '!status') {
+            console.log('[MESSENGER] !status command detected');
+            const sessions = getActiveSessions();
+            const sessionEntries = Object.entries(sessions);
+
+            if (sessionEntries.length === 0) {
+                await this.sendMessage(senderPsid, 'No active human sessions.');
+            } else {
+                let reply = `Active human sessions (${sessionEntries.length}):\n\n`;
+                let index = 1;
+
+                for (const [uid, session] of sessionEntries) {
+                    const minsAgo = Math.round((Date.now() - session.lastHumanMessage) / 60000);
+                    let identifier;
+                    let command;
+
+                    if (session.platform === PLATFORM_MESSENGER) {
+                        identifier = session.facebookName || 'Unknown';
+                        command = `!close ${identifier}`;
+                    } else {
+                        identifier = session.phoneNumber || uid.replace(/@.*$/, '').replace(/[^0-9]/g, '');
+                        command = `!close ${identifier}`;
+                    }
+
+                    reply += `[${index}] ${identifier} (${session.platform || 'unknown'}) | Agent: ${session.agentId} | Last: ${minsAgo} min ago\n`;
+                    reply += `Command: ${command}\n\n`;
+                    index++;
+                }
+                reply += 'Copy the command above to close a session.';
+                await this.sendMessage(senderPsid, reply);
+            }
+            return;
+        }
+
+        // !close - Close session (works for both WhatsApp and Messenger)
+        if (lowerMsg.startsWith('!close')) {
+            console.log('[MESSENGER] !close command detected');
+            const parts = messageText.trim().split(/\s+/);
+            const searchValue = parts.length > 1 ? parts.slice(1).join(' ').trim() : null;
+
+            if (!searchValue) {
+                await this.sendMessage(senderPsid, 'Usage: !close <phone_or_name>');
+                return;
+            }
+
+            const handoff = getHandoff();
+            const allSessions = handoff.getActiveSessions();
+            let closed = false;
+            let closedBy = '';
+
+            // First try Messenger name match
+            const messengerClosed = handoff.closeSessionByName(searchValue);
+            if (messengerClosed.length > 0) {
+                closed = true;
+                closedBy = searchValue;
+            }
+
+            // Then try WhatsApp phone match
+            const phoneClosed = handoff.closeSessionByPhone(searchValue);
+            if (phoneClosed.length > 0) {
+                closed = true;
+                closedBy = searchValue;
+            }
+
+            if (closed) {
+                await this.sendMessage(senderPsid, `Session closed for ${closedBy}. User has returned to bot mode.`);
+            } else {
+                await this.sendMessage(senderPsid, `No active session found for: ${searchValue}`);
+            }
+            return;
+        }
+
+        // !closeall - Close all sessions (like WhatsApp)
+        if (lowerMsg === '!closeall') {
+            console.log('[MESSENGER] !closeall command detected');
+            const handoff = getHandoff();
+            const allSessions = handoff.getActiveSessions();
+            const sessionIds = Object.keys(allSessions);
+            const count = sessionIds.length;
+
+            if (count === 0) {
+                await this.sendMessage(senderPsid, 'No active sessions.');
+            } else {
+                for (const uid of sessionIds) {
+                    handoff.setBotMode(uid, 'agent_closed');
+                }
+                await this.sendMessage(senderPsid, `Closed ${count} session(s).`);
+            }
+            return;
+        }
+        // ========================================
+
+        // ========================================
+        // HUMAN HANDOFF INTEGRATION
+        // ========================================
+        const handoff = getHandoff();
+
+        // Check if user is in human mode - forward to human agent, ignore for bot
+        if (handoff.isHumanMode(senderPsid)) {
+            console.log(`[MESSENGER] User ${senderPsid} in HUMAN mode - message will be handled by human agent`);
+            return;
+        }
+
+        // Check if message should trigger escalation
+        if (handoff.shouldEscalate(messageText)) {
+            console.log(`[MESSENGER] Escalation triggered: "${messageText}"`);
+
+            // Check if within working hours
+            if (!handoff.isWithinWorkingHours()) {
+                await this.sendMessage(senderPsid, handoff.getWorkingHoursMessage());
+                return;
+            }
+
+            // Fetch Facebook user name for the session
+            const facebookName = await this.fetchFacebookUserName(senderPsid);
+            console.log(`[MESSENGER] User name: ${facebookName || 'Unknown'}`);
+
+            // Set human mode with facebook name
+            handoff.setHumanMode(senderPsid, 'escalation', null, PLATFORM_MESSENGER, facebookName);
+
+            // Notify user
+            await this.sendMessage(senderPsid, 'Connecting you to a human agent. Please wait...');
+            return;
+        }
+        // ========================================
+        // END HUMAN HANDOFF INTEGRATION
+        // ========================================
 
         try {
             // Get conversation history for context
@@ -185,6 +353,56 @@ class MessengerBot {
         const lastMsgTime = this.userCooldowns.get(senderPsid) || 0;
         if (now - lastMsgTime < this.COOLDOWN_MS) return;
         this.userCooldowns.set(senderPsid, now);
+
+        // Check if user is in human mode
+        const handoff = getHandoff();
+        if (handoff.isHumanMode(senderPsid)) {
+            console.log(`[MESSENGER] User ${senderPsid} in HUMAN mode - ignoring postback`);
+            return;
+        }
+
+        // Check for admin commands in postback payload
+        const postbackText = receivedPostback.payload || '';
+        const lowerPayload = postbackText.toLowerCase();
+
+        if (lowerPayload === '!status' || lowerPayload.startsWith('!close') || lowerPayload === '!closeall') {
+            const handoff = getHandoff();
+            const allSessions = handoff.getActiveSessions();
+
+            if (lowerPayload === '!status') {
+                const sessionEntries = Object.entries(allSessions);
+                if (sessionEntries.length === 0) {
+                    await this.sendMessage(senderPsid, 'No active human sessions.');
+                } else {
+                    let reply = `Active human sessions (${sessionEntries.length}):\n\n`;
+                    let index = 1;
+                    for (const [uid, session] of sessionEntries) {
+                        const minsAgo = Math.round((Date.now() - session.lastHumanMessage) / 60000);
+                        let identifier;
+                        if (session.platform === PLATFORM_MESSENGER) {
+                            identifier = session.facebookName || 'Unknown';
+                        } else {
+                            identifier = session.phoneNumber || uid.replace(/@.*$/, '').replace(/[^0-9]/g, '');
+                        }
+                        reply += `[${index}] ${identifier} (${session.platform || 'unknown'}) | Agent: ${session.agentId} | Last: ${minsAgo} min ago\n`;
+                        reply += `Command: !close ${identifier}\n\n`;
+                        index++;
+                    }
+                    await this.sendMessage(senderPsid, reply);
+                }
+            } else if (lowerPayload === '!closeall') {
+                const count = Object.keys(allSessions).length;
+                if (count === 0) {
+                    await this.sendMessage(senderPsid, 'No active sessions.');
+                } else {
+                    for (const uid of Object.keys(allSessions)) {
+                        handoff.setBotMode(uid, 'agent_closed');
+                    }
+                    await this.sendMessage(senderPsid, `Closed ${count} session(s).`);
+                }
+            }
+            return;
+        }
 
         try {
             // Handle specific postbacks
