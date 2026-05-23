@@ -17,6 +17,7 @@ const {
     shouldEscalate, isWithinWorkingHours, getWorkingHoursMessage,
     PLATFORM_MESSENGER
 } = require('../utils/humanHandoff');
+const { setFacebookUser, getPsidByFacebookName } = require('../utils/contactCache');
 
 // Get fresh handoff module instance
 function getHandoff() {
@@ -103,21 +104,19 @@ class MessengerBot {
         });
     }
 
-    // Fetch Facebook user profile (first name)
+    // Fetch Facebook user profile (full display name)
     async fetchFacebookUserName(psid) {
         try {
             const response = await axios.get(
                 `https://graph.facebook.com/v21.0/${psid}`,
                 {
                     params: {
-                        fields: 'first_name,last_name',
+                        fields: 'name',
                         access_token: this.PAGE_ACCESS_TOKEN
                     }
                 }
             );
-            const firstName = response.data.first_name || '';
-            const lastName = response.data.last_name || '';
-            return (firstName + ' ' + lastName).trim() || null;
+            return response.data.name || null;
         } catch (err) {
             console.error('[MESSENGER] Failed to fetch user name:', err.message);
             return null;
@@ -151,6 +150,17 @@ class MessengerBot {
         }
         this.userCooldowns.set(senderPsid, now);
 
+        // Cache Facebook user name for future !escalate lookups
+        try {
+            const fbName = await this.fetchFacebookUserName(senderPsid);
+            if (fbName) {
+                setFacebookUser(senderPsid, fbName);
+                console.log(`[MESSENGER] Cached FB user: ${senderPsid} -> ${fbName}`);
+            }
+        } catch (e) {
+            // Silently fail - we don't want to interrupt message handling
+        }
+
         // ========================================
         // ADMIN COMMANDS (processed before human handoff)
         // ========================================
@@ -159,7 +169,8 @@ class MessengerBot {
         // !status - List active sessions (all platforms, like WhatsApp)
         if (lowerMsg === '!status') {
             console.log('[MESSENGER] !status command detected');
-            const sessions = getActiveSessions();
+            const handoff = getHandoff();
+            const sessions = handoff.getActiveSessions();
             const sessionEntries = Object.entries(sessions);
 
             if (sessionEntries.length === 0) {
@@ -187,6 +198,25 @@ class MessengerBot {
                 }
                 reply += 'Copy the command above to close a session.';
                 await this.sendMessage(senderPsid, reply);
+            }
+            return;
+        }
+
+        // !closeall - Close all sessions (like WhatsApp)
+        if (lowerMsg === '!closeall') {
+            console.log('[MESSENGER] !closeall command detected');
+            const handoff = getHandoff();
+            const allSessions = handoff.getActiveSessions();
+            const sessionIds = Object.keys(allSessions);
+            const count = sessionIds.length;
+
+            if (count === 0) {
+                await this.sendMessage(senderPsid, 'No active sessions.');
+            } else {
+                for (const uid of sessionIds) {
+                    handoff.setBotMode(uid, 'agent_closed');
+                }
+                await this.sendMessage(senderPsid, `Closed ${count} session(s).`);
             }
             return;
         }
@@ -235,6 +265,15 @@ class MessengerBot {
             const parts = messageText.trim().split(/\s+/);
             const searchValue = parts.length > 1 ? parts.slice(1).join(' ').trim() : null;
 
+            // DEBUG: Log PSID and attempt to get Facebook username
+            console.log(`[MESSENGER] DEBUG: !escalate from senderPsid=${senderPsid}`);
+            try {
+                const debugFBName = await this.fetchFacebookUserName(senderPsid);
+                console.log(`[MESSENGER] DEBUG: Facebook user name for senderPsid=${senderPsid} is "${debugFBName}"`);
+            } catch (e) {
+                console.log(`[MESSENGER] DEBUG: Failed to get Facebook name for senderPsid=${senderPsid}: ${e.message}`);
+            }
+
             if (!searchValue) {
                 await this.sendMessage(senderPsid, 'Usage: !escalate <facebook_name>');
                 return;
@@ -244,19 +283,32 @@ class MessengerBot {
             const allSessions = handoff.getActiveSessions();
             const lowerSearch = searchValue.toLowerCase();
 
-            // Find matching Messenger session by facebookName
+            // Step 1: Find matching Messenger session by facebookName in active sessions
             let targetUserId = null;
             let targetSession = null;
+            let targetFacebookName = null;
 
             for (const [uid, session] of Object.entries(allSessions)) {
                 // Only Messenger sessions
                 if (session.platform !== PLATFORM_MESSENGER) continue;
 
-                // Match by facebookName
+                // Match by facebookName (partial match)
                 if (session.facebookName && session.facebookName.toLowerCase().includes(lowerSearch)) {
                     targetUserId = uid;
                     targetSession = session;
+                    targetFacebookName = session.facebookName;
                     break;
+                }
+            }
+
+            // Step 2: If not found in active sessions, check contact cache
+            if (!targetUserId) {
+                console.log(`[MESSENGER] !escalate: Not in active sessions, checking contact cache for "${searchValue}"`);
+                const cachedPsid = getPsidByFacebookName(searchValue);
+                if (cachedPsid) {
+                    console.log(`[MESSENGER] !escalate: Found in cache - PSID=${cachedPsid}`);
+                    targetUserId = cachedPsid;
+                    targetFacebookName = searchValue; // Use the search value as name
                 }
             }
 
@@ -266,40 +318,24 @@ class MessengerBot {
                 return;
             }
 
-            // User not found in active sessions
+            // User not found in active sessions or cache
             if (!targetUserId) {
                 await this.sendMessage(senderPsid, `No active session found for: ${searchValue}. Make sure the user has messaged the bot before escalating.`);
                 return;
             }
 
             // User found and not in human mode - escalate
-            if (targetUserId && targetSession) {
+            if (targetUserId) {
+                // Use facebookName from session or from targetFacebookName (from cache lookup)
+                const fbName = targetSession ? targetSession.facebookName : targetFacebookName;
+
                 // Set human mode with admin escalation
-                handoff.setHumanMode(targetUserId, 'admin_escalation', null, PLATFORM_MESSENGER, targetSession.facebookName);
+                handoff.setHumanMode(targetUserId, 'admin_escalation', null, PLATFORM_MESSENGER, fbName);
 
                 // Notify the user being escalated
                 await this.sendMessage(targetUserId, 'Connecting you to a human agent. Please wait...');
 
                 await this.sendMessage(senderPsid, `User "${searchValue}" has been escalated to human mode.`);
-            }
-            return;
-        }
-
-        // !closeall - Close all sessions (like WhatsApp)
-        if (lowerMsg === '!closeall') {
-            console.log('[MESSENGER] !closeall command detected');
-            const handoff = getHandoff();
-            const allSessions = handoff.getActiveSessions();
-            const sessionIds = Object.keys(allSessions);
-            const count = sessionIds.length;
-
-            if (count === 0) {
-                await this.sendMessage(senderPsid, 'No active sessions.');
-            } else {
-                for (const uid of sessionIds) {
-                    handoff.setBotMode(uid, 'agent_closed');
-                }
-                await this.sendMessage(senderPsid, `Closed ${count} session(s).`);
             }
             return;
         }
@@ -319,6 +355,15 @@ class MessengerBot {
         // Check if message should trigger escalation
         if (handoff.shouldEscalate(messageText)) {
             console.log(`[MESSENGER] Escalation triggered: "${messageText}"`);
+
+            // DEBUG: Log PSID and Facebook username for escalation debugging
+            console.log(`[MESSENGER] DEBUG: Auto-escalation - senderPsid=${senderPsid}`);
+            try {
+                const debugFBName = await this.fetchFacebookUserName(senderPsid);
+                console.log(`[MESSENGER] DEBUG: Facebook user name for senderPsid=${senderPsid} is "${debugFBName}"`);
+            } catch (e) {
+                console.log(`[MESSENGER] DEBUG: Failed to get Facebook name for senderPsid=${senderPsid}: ${e.message}`);
+            }
 
             // Check if within working hours
             if (!handoff.isWithinWorkingHours()) {
