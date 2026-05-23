@@ -1,5 +1,5 @@
 // utils/contactCache.js
-// Stores phone numbers for user IDs
+// Stores phone numbers for user IDs (WhatsApp) and Facebook names for Messenger
 
 const fs = require('fs');
 const path = require('path');
@@ -7,6 +7,7 @@ const path = require('path');
 const CACHE_FILE = path.join(__dirname, '..', 'contact_cache.json');
 
 let cache = new Map();
+let fbNameToPsid = new Map(); // Facebook name -> PSID mapping for Messenger
 
 function loadCache() {
     try {
@@ -40,6 +41,44 @@ function setContact(userId, phoneNumber, name = null) {
     saveCache();
 }
 
+/**
+ * Store Facebook name -> PSID mapping for Messenger users
+ */
+function setFacebookUser(psid, facebookName) {
+    if (!psid || !facebookName) return;
+
+    const lowerName = facebookName.toLowerCase();
+
+    // Store both PSID->info and name->PSID mapping
+    cache.set(psid, {
+        facebookName: facebookName,
+        updatedAt: Date.now()
+    });
+
+    fbNameToPsid.set(lowerName, psid);
+    saveCache();
+
+    console.log(`[CONTACTS] Cached FB user: ${facebookName} -> ${psid}`);
+}
+
+/**
+ * Get PSID by Facebook name (for Messenger !escalate)
+ */
+function getPsidByFacebookName(facebookName) {
+    if (!facebookName) return null;
+
+    const lowerName = facebookName.toLowerCase();
+    return fbNameToPsid.get(lowerName) || null;
+}
+
+/**
+ * Get cached Facebook name for a PSID
+ */
+function getFacebookName(psid) {
+    const contact = cache.get(psid);
+    return contact ? contact.facebookName : null;
+}
+
 function getContact(userId) {
     return cache.get(userId);
 }
@@ -57,6 +96,9 @@ loadCache();
 
 module.exports = {
     setContact,
+    setFacebookUser,
+    getPsidByFacebookName,
+    getFacebookName,
     getContact,
     getPhoneNumber,
     hasPhone

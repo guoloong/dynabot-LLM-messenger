@@ -60,10 +60,20 @@ function cleanupExpiredSessions() {
 setInterval(cleanupExpiredSessions, 30 * 60 * 1000);
 
 function getSession(userId) {
+    // DEBUG: Log incoming request
+    console.log(`[HANDOFF] DEBUG getSession: userId=${userId}`);
+
     // Direct lookup
     const session = sessions.get(userId);
+    console.log(`[HANDOFF] DEBUG getSession: directMatch=${session ? 'YES' : 'NO'}`);
     if (session) {
         return session;
+    }
+
+    // DEBUG: Log all current sessions
+    console.log(`[HANDOFF] DEBUG getSession: Checking against ${sessions.size} total sessions`);
+    for (const [storedId, storedSession] of sessions.entries()) {
+        console.log(`[HANDOFF] DEBUG Session: storedId=${storedId}, platform=${storedSession.platform}, mode=${storedSession.mode}, fbName=${storedSession.facebookName || 'none'}`);
     }
 
     // For WhatsApp LID format - try to find matching session by phone
@@ -142,8 +152,15 @@ function getSession(userId) {
 function isHumanMode(userId) {
     // Direct lookup
     const session = sessions.get(userId);
+    console.log(`[HANDOFF] DEBUG isHumanMode: userId=${userId}, directMatch=${session ? 'YES' : 'NO'}`);
     if (session && session.mode === 'human') {
         return true;
+    }
+
+    // DEBUG: Log all current sessions for troubleshooting
+    console.log(`[HANDOFF] DEBUG: Checking against ${sessions.size} total sessions`);
+    for (const [storedId, storedSession] of sessions.entries()) {
+        console.log(`[HANDOFF] DEBUG Session: storedId=${storedId}, platform=${storedSession.platform}, mode=${storedSession.mode}, fbName=${storedSession.facebookName || 'none'}, phone=${storedSession.phoneNumber || 'none'}`);
     }
 
     // For WhatsApp LID format - try to match by phone
@@ -220,6 +237,9 @@ function isHumanMode(userId) {
 }
 
 function setHumanMode(userId, agentId = 'human', phoneNumber = null, platform = PLATFORM_WHATSAPP, facebookName = null) {
+    // DEBUG: Log what we're about to save
+    console.log(`[HANDOFF] DEBUG setHumanMode: userId=${userId}, agentId=${agentId}, phone=${phoneNumber}, platform=${platform}, fbName=${facebookName}`);
+
     sessions.set(userId, {
         mode: 'human',
         agentId: agentId,
@@ -230,6 +250,11 @@ function setHumanMode(userId, agentId = 'human', phoneNumber = null, platform = 
         platform: platform,
         facebookName: facebookName
     });
+
+    // DEBUG: Verify what was actually saved
+    const savedSession = sessions.get(userId);
+    console.log(`[HANDOFF] DEBUG setHumanMode: Verified saved session - mode=${savedSession.mode}, platform=${savedSession.platform}, fbName=${savedSession.facebookName}`);
+
     console.log(`[HANDOFF] User ${userId} switched to HUMAN mode (platform: ${platform}, name: ${facebookName || phoneNumber || userId})`);
     saveSessions();
 }
