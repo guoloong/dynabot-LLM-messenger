@@ -578,3 +578,57 @@ Proprietary - Dyna-Nutrition
 ## Support
 
 For technical issues or feature requests, contact the development team.
+
+---
+
+## Admin Commands (Human Handoff Management)
+
+### Overview
+
+The bot supports human agent handoff for both **WhatsApp** and **Facebook Messenger** platforms. Admin commands work the same way on both platforms - send a message to the bot with the command.
+
+### Session Identification
+
+| Platform | User Identifier | Display Name | Close Command |
+|----------|-----------------|--------------|----------------|
+| WhatsApp | WhatsApp User ID | Phone Number | `!close <phone>` |
+| Messenger | PSID (Facebook Page-Scoped ID) | Facebook Name | `!close <name>` |
+
+### Admin Commands
+
+Send these commands from any WhatsApp number or via Facebook Messenger:
+
+```
+!status          - List all active human sessions with close commands
+!close <value>   - Close session (phone for WhatsApp, name for Messenger)
+!closeall        - Close all active human sessions
+!bot             - Return user to bot mode (WhatsApp only)
+```
+
+### How It Works
+
+**WhatsApp Flow:**
+1. User says "talk to human"
+2. Bot extracts phone number from contact
+3. Session stored with phone number
+4. Agent uses `!status` to see sessions, `!close 91234567` to close
+
+**Messenger Flow:**
+1. User says "talk to human"
+2. Bot fetches Facebook name via Graph API
+3. Session stored with facebookName
+4. Agent uses `!status` to see sessions, `!close John Smith` to close
+
+### !status Output Example
+
+```
+Active human sessions (2):
+
+[1] 91234567 (whatsapp) | Agent: escalation | Last: 5 min ago
+Command: !close 91234567
+
+[2] John Smith (messenger) | Agent: escalation | Last: 3 min ago
+Command: !close John Smith
+
+Copy the command above to close a session.
+```
