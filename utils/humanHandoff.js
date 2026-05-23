@@ -1,11 +1,15 @@
 // utils/humanHandoff.js
-// Manages human agent handoff state
+// Manages human agent handoff state for both WhatsApp and Messenger
 
 const fs = require('fs');
 const path = require('path');
 
 const SESSION_FILE = path.join(__dirname, '..', 'human_sessions.json');
 const AUTO_RETURN_HOURS = 24;
+
+// Platform constants
+const PLATFORM_WHATSAPP = 'whatsapp';
+const PLATFORM_MESSENGER = 'messenger';
 
 let sessions = new Map();
 let saveTimer = null;
@@ -64,16 +68,18 @@ function isHumanMode(userId) {
     return session && session.mode === 'human';
 }
 
-function setHumanMode(userId, agentId = 'human', phoneNumber = null) {
+function setHumanMode(userId, agentId = 'human', phoneNumber = null, platform = PLATFORM_WHATSAPP, facebookName = null) {
     sessions.set(userId, {
         mode: 'human',
         agentId: agentId,
         startedAt: Date.now(),
         lastHumanMessage: Date.now(),
         status: 'active',
-        phoneNumber: phoneNumber
+        phoneNumber: phoneNumber,
+        platform: platform,
+        facebookName: facebookName
     });
-    console.log(`[HANDOFF] User ${userId} switched to HUMAN mode`);
+    console.log(`[HANDOFF] User ${userId} switched to HUMAN mode (platform: ${platform}, name: ${facebookName || phoneNumber || userId})`);
     saveSessions();
 }
 
@@ -98,6 +104,81 @@ function closeSession(userId) {
 
 function getActiveSessions() {
     return Object.fromEntries(sessions);
+}
+
+/**
+ * Get active sessions filtered by platform
+ */
+function getActiveSessionsByPlatform(platform) {
+    const filtered = {};
+    for (const [userId, session] of Object.entries(sessions)) {
+        if (session.platform === platform) {
+            filtered[userId] = session;
+        }
+    }
+    return filtered;
+}
+
+/**
+ * Get display name for a session (phone number for WhatsApp, facebookName for Messenger)
+ */
+function getSessionDisplayName(session) {
+    if (session.platform === PLATFORM_MESSENGER && session.facebookName) {
+        return session.facebookName;
+    }
+    return session.phoneNumber || session.userId || 'Unknown';
+}
+
+/**
+ * Close session by facebook name (for Messenger admin commands)
+ * If platform is specified, only closes sessions on that platform
+ */
+function closeSessionByName(name, platform = null) {
+    const lowerName = name.toLowerCase();
+    let closed = [];
+
+    for (const [userId, session] of sessions.entries()) {
+        // Filter by platform if specified
+        if (platform && session.platform !== platform) {
+            continue;
+        }
+        if (session.facebookName && session.facebookName.toLowerCase() === lowerName) {
+            sessions.delete(userId);
+            closed.push(userId);
+            console.log(`[HANDOFF] Closed session for ${name} (${userId}, platform: ${session.platform})`);
+        }
+    }
+
+    if (closed.length > 0) {
+        saveSessions();
+    }
+
+    return closed;
+}
+
+/**
+ * Close sessions by phone number (for WhatsApp admin commands)
+ */
+function closeSessionByPhone(phoneNumber) {
+    const cleaned = phoneNumber.replace(/[^0-9]/g, '');
+    let closed = [];
+
+    for (const [userId, session] of sessions.entries()) {
+        if (session.phoneNumber) {
+            const sessionPhone = session.phoneNumber.replace(/[^0-9]/g, '');
+            if (sessionPhone === cleaned || sessionPhone.includes(cleaned) || cleaned.includes(sessionPhone)) {
+                sessions.delete(userId);
+                closed.push(userId);
+                console.log(`[HANDOFF] Closed session for ${phoneNumber} (${userId})`);
+            }
+        }
+    }
+
+    if (closed.length > 0) {
+        saveSessions();
+    }
+
+    return closed;
 }
 
 function isWithinWorkingHours() {
@@ -139,7 +220,13 @@ module.exports = {
     closeSession,
     getSession,
     getActiveSessions,
+    getActiveSessionsByPlatform,
+    getSessionDisplayName,
+    closeSessionByName,
+    closeSessionByPhone,
     shouldEscalate,
     isWithinWorkingHours,
-    getWorkingHoursMessage
+    getWorkingHoursMessage,
+    PLATFORM_WHATSAPP,
+    PLATFORM_MESSENGER
 };
