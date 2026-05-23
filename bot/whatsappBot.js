@@ -1,6 +1,8 @@
 // bot/whatsappBot.js
 // WhatsApp bot with LLM-based routing to priceApi, storeLocator, and general responses
 
+const fs = require('fs');
+const path = require('path');
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const {
@@ -328,6 +330,141 @@ function initWhatsAppBot() {
                 await msg.reply(`Session closed for ${searchPhone}.`);
             } else {
                 await msg.reply('No active human session for that user.');
+            }
+            return;
+        }
+
+        // ========================================
+        // !escalate - Admin manually trigger human mode (bypasses working hours)
+        // Uses SAME phone extraction logic as user-initiated escalation
+        // ========================================
+        if (lowerMsg.startsWith('!escalate ')) {
+            console.log(`[BOT] !escalate command detected`);
+            const parts = msgBody.trim().split(/\s+/);
+            const searchPhone = parts.length > 1 ? parts.slice(1).join(' ').replace(/^[\s@]+/, '') : null;
+
+            if (!searchPhone) {
+                await msg.reply('Usage: !escalate <phone_number>');
+                return;
+            }
+
+            console.log(`[BOT] !escalate searching for: ${searchPhone}`);
+            const handoff = getHandoff();
+            const allSessions = handoff.getActiveSessions();
+            const cleanSearch = searchPhone.replace(/[^0-9]/g, '');
+            console.log(`[BOT] !escalate cleanSearch: ${cleanSearch}, active sessions: ${Object.keys(allSessions).length}`);
+
+            // Find matching session (same logic as !close)
+            let targetUserId = null;
+            let targetPhone = cleanSearch;
+
+            for (const [uid, session] of Object.entries(allSessions)) {
+                console.log(`[BOT] !escalate checking session: ${uid}, phone: ${session.phoneNumber}, platform: ${session.platform}`);
+                // Only WhatsApp sessions
+                if (session.platform !== PLATFORM_WHATSAPP) continue;
+
+                // First try: match by stored phoneNumber
+                if (session.phoneNumber) {
+                    const sessionPhone = session.phoneNumber.replace(/[^0-9]/g, '');
+                    console.log(`[BOT] !escalate comparing storedPhone: ${sessionPhone} vs cleanSearch: ${cleanSearch}`);
+                    if (sessionPhone === cleanSearch || sessionPhone.includes(cleanSearch) || cleanSearch.includes(sessionPhone)) {
+                        targetUserId = uid;
+                        targetPhone = session.phoneNumber;
+                        console.log(`[BOT] !escalate MATCHED by phoneNumber!`);
+                        break;
+                    }
+                }
+
+                // Second try: match by userId itself (phone@c.us format)
+                if (!targetUserId) {
+                    const cleanUid = uid.replace(/[^0-9]/g, '');
+                    console.log(`[BOT] !escalate comparing userId: ${cleanUid} vs cleanSearch: ${cleanSearch}`);
+                    if (cleanUid.includes(cleanSearch) || cleanSearch.includes(cleanUid.slice(-8))) {
+                        targetUserId = uid;
+                        targetPhone = cleanSearch;
+                        console.log(`[BOT] !escalate MATCHED by userId!`);
+                        break;
+                    }
+                }
+            }
+
+            console.log(`[BOT] !escalate targetUserId: ${targetUserId}`);
+
+            // Check if user already in human mode (using same userId)
+            if (targetUserId && handoff.isHumanMode(targetUserId)) {
+                await msg.reply(`User ${searchPhone} is already in human mode.`);
+                return;
+            }
+
+            // User not found in active sessions - check if user exists in contact cache
+            if (!targetUserId) {
+                // Load contact cache to find user
+                let cachedContacts = {};
+                try {
+                    const cachePath = path.join(__dirname, '..', 'contact_cache.json');
+                    if (fs.existsSync(cachePath)) {
+                        cachedContacts = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+                    }
+                } catch (e) {
+                    console.log(`[BOT] !escalate - failed to load contact cache: ${e.message}`);
+                }
+
+                console.log(`[BOT] !escalate - contactCache entries: ${Object.keys(cachedContacts).length}`);
+
+                // Search contact cache for matching phone
+                let actualUserId = null;
+                let actualPhone = cleanSearch;
+
+                for (const [cachedUserId, contact] of Object.entries(cachedContacts)) {
+                    if (contact && contact.phoneNumber) {
+                        const cachedPhone = contact.phoneNumber.replace(/[^0-9]/g, '');
+                        console.log(`[BOT] !escalate - checking cache: userId=${cachedUserId}, phone=${cachedPhone} vs search=${cleanSearch}`);
+                        if (cachedPhone === cleanSearch || cleanSearch.includes(cachedPhone) || cachedPhone.includes(cleanSearch)) {
+                            actualUserId = cachedUserId;
+                            actualPhone = cachedPhone;
+                            console.log(`[BOT] !escalate - FOUND in contact cache! userId=${actualUserId}, phone=${actualPhone}`);
+                            break;
+                        }
+                    }
+                }
+
+                // If user not in sessions AND not in contact cache, cannot escalate
+                if (!actualUserId) {
+                    await msg.reply(`User ${searchPhone} not found. They must message the bot first before you can escalate.`);
+                    return;
+                }
+
+                // User found in contact cache - escalate
+                targetUserId = actualUserId;
+                console.log(`[BOT] !escalate - setting human mode for userId=${targetUserId}, phone=${actualPhone}`);
+
+                // Set human mode with admin escalation
+                handoff.setHumanMode(targetUserId, 'admin_escalation', actualPhone, PLATFORM_WHATSAPP, null);
+
+                // Notify the user being escalated
+                try {
+                    await client.sendMessage(targetUserId, 'Connecting you to a human agent. Please wait...');
+                } catch (e) {
+                    console.log(`[BOT] Could not notify user: ${e.message}`);
+                }
+
+                await msg.reply(`User ${searchPhone} has been escalated to human mode.`);
+                return;
+            }
+
+            // User found in active sessions and not in human mode - escalate
+            if (targetUserId) {
+                // Use the same userId as stored in session
+                handoff.setHumanMode(targetUserId, 'admin_escalation', targetPhone, PLATFORM_WHATSAPP, null);
+
+                // Notify the user being escalated
+                try {
+                    await client.sendMessage(targetUserId, 'Connecting you to a human agent. Please wait...');
+                } catch (e) {
+                    console.log(`[BOT] Could not notify user: ${e.message}`);
+                }
+
+                await msg.reply(`User ${searchPhone} has been escalated to human mode.`);
             }
             return;
         }

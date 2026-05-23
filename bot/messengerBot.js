@@ -229,6 +229,62 @@ class MessengerBot {
             return;
         }
 
+        // !escalate - Admin manually trigger human mode (bypasses working hours)
+        if (lowerMsg.startsWith('!escalate')) {
+            console.log('[MESSENGER] !escalate command detected');
+            const parts = messageText.trim().split(/\s+/);
+            const searchValue = parts.length > 1 ? parts.slice(1).join(' ').trim() : null;
+
+            if (!searchValue) {
+                await this.sendMessage(senderPsid, 'Usage: !escalate <facebook_name>');
+                return;
+            }
+
+            const handoff = getHandoff();
+            const allSessions = handoff.getActiveSessions();
+            const lowerSearch = searchValue.toLowerCase();
+
+            // Find matching Messenger session by facebookName
+            let targetUserId = null;
+            let targetSession = null;
+
+            for (const [uid, session] of Object.entries(allSessions)) {
+                // Only Messenger sessions
+                if (session.platform !== PLATFORM_MESSENGER) continue;
+
+                // Match by facebookName
+                if (session.facebookName && session.facebookName.toLowerCase().includes(lowerSearch)) {
+                    targetUserId = uid;
+                    targetSession = session;
+                    break;
+                }
+            }
+
+            // Check if user already in human mode
+            if (targetUserId && handoff.isHumanMode(targetUserId)) {
+                await this.sendMessage(senderPsid, `User "${searchValue}" is already in human mode.`);
+                return;
+            }
+
+            // User not found in active sessions
+            if (!targetUserId) {
+                await this.sendMessage(senderPsid, `No active session found for: ${searchValue}. Make sure the user has messaged the bot before escalating.`);
+                return;
+            }
+
+            // User found and not in human mode - escalate
+            if (targetUserId && targetSession) {
+                // Set human mode with admin escalation
+                handoff.setHumanMode(targetUserId, 'admin_escalation', null, PLATFORM_MESSENGER, targetSession.facebookName);
+
+                // Notify the user being escalated
+                await this.sendMessage(targetUserId, 'Connecting you to a human agent. Please wait...');
+
+                await this.sendMessage(senderPsid, `User "${searchValue}" has been escalated to human mode.`);
+            }
+            return;
+        }
+
         // !closeall - Close all sessions (like WhatsApp)
         if (lowerMsg === '!closeall') {
             console.log('[MESSENGER] !closeall command detected');
