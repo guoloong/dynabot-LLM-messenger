@@ -377,9 +377,10 @@ ${routeParams?.marketplaceType === 'platform_not_found' ? `
 IMPORTANT: The user asked about "${routeParams.marketplacePlatform}" for ${routeParams.region} but we don't have that link available.
 Say clearly: "I'm sorry, I don't have that information" - do NOT make up a URL.` : ''}
 
-${routeParams?.marketplaceType === 'need_region' ? `
-IMPORTANT: The user asked about "${routeParams.marketplacePlatform}" but I need to know if they want Malaysia or Singapore.
-Ask them to clarify which region they want.` : ''}
+${routeParams?.marketplaceType === 'need_region' && routeParams?.marketplaceUrls ? `
+[INTERNAL - DO NOT DISPLAY TO USER]
+${routeParams.marketplaceUrls.map(url => `🔗 ${url}`).join('\n')}
+[END INTERNAL]` : ''}
 
 RETAIL STORES INFO:
 ${retailDesc}

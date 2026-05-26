@@ -470,7 +470,8 @@ function extractMarketplaceUrl(userMessage, phoneNumber, kb) {
                 name: null,
                 platform: requestedPlatform,
                 region: null,
-                availableRegions: matches.map(m => m.region)
+                availableRegions: matches.map(m => m.region),
+                marketplaceUrls: matches.map(m => `${m.region}: ${m.url}`)
             };
         }
     }
@@ -596,7 +597,8 @@ async function routeMessage(userMessage, userId, phoneNumber, apiKey, history = 
                 marketplaceName: urlInfo.name,
                 marketplacePlatform: urlInfo.platform,
                 marketplaceRegion: urlInfo.region,
-                availableRegions: urlInfo.availableRegions
+                availableRegions: urlInfo.availableRegions,
+                marketplaceUrls: urlInfo.marketplaceUrls
             }
         };
     }
