@@ -217,7 +217,7 @@ function buildGuidelinesPrompt(guidelines) {
 }
 
 // Build knowledge prompt
-function buildKnowledgePrompt(detectedProduct = null) {
+function buildKnowledgePrompt(detectedProduct = null, routeParams = {}) {
     const kb = getKnowledge();
     let prompt = `You are DynaBot, the friendly AI nutrition and health expert for Dynamic Nutrition.
 
@@ -237,16 +237,16 @@ function buildKnowledgePrompt(detectedProduct = null) {
 - Use PLAIN TEXT ONLY - do NOT use any markdown formatting
 - Do NOT use **bold**, *italic*, _underscores_, or any other markdown syntax
 - Use emojis to add emphasis and visual interest:
-  - í ½í´¥ for powerful/important items
+  - ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ for powerful/important items
   - âœ… for lists and checkmarks
-  - í ½í²ª for strength/health benefits
+  - ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ for strength/health benefits
   - âš¡ for energy related content
-  - í ½í³Œ for key points and headers
-  - í ½í±¨ for men-related content
-  - í ½í´¬ for science/ingredients
-  - í ½í³ for locations/store info
+  - ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ for key points and headers
+  - ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ for men-related content
+  - ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ for science/ingredients
+  - ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ for locations/store info
 - Structure responses with line breaks and emoji-prefixed headers
-- Example: "í ½í´¥ KEY BENEFITS:\nâœ… Boosts testosterone\nâœ… Increases energy"
+- Example: "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ KEY BENEFITS:\nâœ… Boosts testosterone\nâœ… Increases energy"
 
 `;
 
@@ -308,7 +308,7 @@ function buildKnowledgePrompt(detectedProduct = null) {
         .replace(/\{returns\}/g, returns);
 
     const storeLocatorGuidelines = `STORE LOCATOR GUIDELINES:
-When users ask about where to buy products or store locations:
+When users ask about PHYSICAL RETAIL STORE LOCATIONS (pharmacy near me, find stores in KL, where to buy near JB):
 1. ALWAYS ask for their location/area first if they don't provide one
 2. Accept locations in various formats: "near X", "in X", "I'm in X", "near X airport"
 3. Support common Malaysia/Singapore areas: KL, PJ, Subang Jaya, Shah Alam, Penang, Johor, Singapore, etc.
@@ -319,7 +319,66 @@ Example responses for location requests:
 - "To find the nearest store, please share your location. Example: 'near Subang Jaya' or 'I'm in Shah Alam'"
 - "I can help you find nearby stores! Please tell me your area."`;
 
-    prompt += `\n${guidelinesRaw}\n${storeLocatorGuidelines}`;
+    // Build ecommerce stores prompt from knowledge base
+    const ecommerceStores = kb.ecommerceStores || {};
+    const official = ecommerceStores.official || {};
+    const marketplaces = ecommerceStores.marketplaces || [];
+    const retailStores = ecommerceStores.retailStores || {};
+
+    const officialUrl = official.url || 'https://www.dyna-nutrition.com';
+    const officialName = official.name || 'Official Website';
+    const retailDesc = retailStores.description || 'Available at major pharmacies and organic shops including Caring, R Pharmacy and other organic stores in Malaysia and Singapore.';
+
+    // Build marketplace URLs string
+    let marketplaceUrls = '';
+    const lazadaMy = marketplaces.find(m => m.platform === 'Lazada' && m.region === 'Malaysia');
+    const lazadaSg = marketplaces.find(m => m.platform === 'Lazada' && m.region === 'Singapore');
+    const shopeeMy = marketplaces.find(m => m.platform === 'Shopee' && m.region === 'Malaysia');
+    const shopeeSg = marketplaces.find(m => m.platform === 'Shopee' && m.region === 'Singapore');
+    const tiktokMy = marketplaces.find(m => m.platform === 'TikTok Shop' && m.region === 'Malaysia');
+    const tiktokSg = marketplaces.find(m => m.platform === 'TikTok Shop' && m.region === 'Singapore');
+
+    if (lazadaMy) marketplaceUrls += `- Lazada Malaysia: ${lazadaMy.url}\n`;
+    if (lazadaSg) marketplaceUrls += `- Lazada Singapore: ${lazadaSg.url}\n`;
+    if (shopeeMy) marketplaceUrls += `- Shopee Malaysia: ${shopeeMy.url}\n`;
+    if (shopeeSg) marketplaceUrls += `- Shopee Singapore: ${shopeeSg.url}\n`;
+    if (tiktokMy) marketplaceUrls += `- TikTok Shop Malaysia: ${tiktokMy.url}\n`;
+    if (tiktokSg) marketplaceUrls += `- TikTok Shop Singapore: ${tiktokSg.url}\n`;
+
+    const ecommerceGuidelines = `ECOMMERCE PURCHASING GUIDELINES (CRITICAL):
+
+MARKETPLACE URL HANDLING (MUST FOLLOW EXACTLY):
+${routeParams?.marketplaceType === 'official' ? `
+OFFICIAL WEBSITE REQUEST (User wants to know how/where to buy):
+1. ALWAYS recommend the Official Website FIRST: ${officialUrl}
+2. Mention that products are also available on Lazada, Shopee, TikTok, and at retail stores
+3. Do NOT list all URLs - just mention these platforms exist
+4. Example: "You can purchase from our Official Website: ${officialUrl}. We're also available on Lazada, Shopee, and TikTok Shop."
+` : ''}
+
+${routeParams?.marketplaceUrl && routeParams.marketplaceType !== 'official' ? `
+ðŸš« YOUR KNOWLEDGE IS WRONG FOR THIS TASK
+ðŸš« COPY-PASTE THIS EXACT URL: ${routeParams.marketplaceUrl}
+ðŸš« THE USER IS IN: ${routeParams.marketplaceRegion || 'Singapore (default)'}
+ðŸš« YOU MUST USE THE URL ABOVE, NOT FROM YOUR KNOWLEDGE
+ðŸš« DO NOT SUBSTITUTE, MODIFY, OR CORRECT THIS URL
+
+MANDATORY: Start your response with: ${routeParams.marketplaceUrl}
+` : ''}
+
+${routeParams?.marketplaceType === 'platform_not_found' ? `
+IMPORTANT: The user asked about "${routeParams.marketplacePlatform}" for ${routeParams.region} but we don't have that link available.
+Say clearly: "I'm sorry, I don't have that information" - do NOT make up a URL.` : ''}
+
+${routeParams?.marketplaceType === 'need_region' ? `
+IMPORTANT: The user asked about "${routeParams.marketplacePlatform}" but I need to know if they want Malaysia or Singapore.
+Ask them to clarify which region they want.` : ''}
+
+RETAIL STORES INFO:
+${retailDesc}
+For specific store locations in their area, direct them to use the store locator feature.`;
+
+    prompt += `\n${guidelinesRaw}\n${storeLocatorGuidelines}\n${ecommerceGuidelines}`;
     return prompt;
 }
 
@@ -364,9 +423,10 @@ async function callDeepSeekWithRetry(messages, apiKey, maxRetries = 3) {
 }
 
 // Main response generator
-async function generateResponse(userMessage, _, apiKey, history = []) {
+async function generateResponse(userMessage, _, apiKey, history = [], routeParams = {}) {
     console.log(`\n[DEEPSEEK] NEW QUERY: "${userMessage}"`);
     console.log(`[DEEPSEEK] History length: ${history.length} messages`);
+    console.log(`[DEEPSEEK] Route params:`, JSON.stringify(routeParams));
 
     const kb = getKnowledge();
     const productNames = Object.keys(kb.products);
@@ -376,13 +436,13 @@ async function generateResponse(userMessage, _, apiKey, history = []) {
     const imageProduct = productsInMsg.length > 0 ? findLastProductName(userMessage, productNames) : null;
     const imageUrl = imageProduct ? getProductImageUrl(kb, imageProduct) : null;
 
-    // Build knowledge prompt
+    // Build knowledge prompt with route params
     let detectedProductForBrochure = null;
     if (productsInMsg.length > 0) {
         detectedProductForBrochure = findLastProductName(userMessage, productNames);
     }
 
-    const kbPrompt = buildKnowledgePrompt(detectedProductForBrochure);
+    const kbPrompt = buildKnowledgePrompt(detectedProductForBrochure, routeParams);
     const messages = [
         { role: "system", content: kbPrompt },
         ...history.slice(-6),

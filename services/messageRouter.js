@@ -76,7 +76,7 @@ Determine the user's INTENT and extract relevant information.
 
 Return ONLY a JSON object with this exact format:
 {
-    "intent": "price" | "store" | "general",
+    "intent": "price" | "store" | "marketplace" | "general",
     "product": "product slug or null",
     "currency": "SGD" | "MYR" | "IDR" | "THB" | "PHP" | "VND" | null,
     "location": "location name or null",
@@ -84,10 +84,40 @@ Return ONLY a JSON object with this exact format:
     "reasoning": "brief explanation"
 }
 
-INTENT DEFINITIONS:
+INTENT DEFINITIONS (IMPORTANT - choose the most specific match):
 - "price": User asks about product cost, pricing, how much, etc.
-- "store": User asks where to buy, find stores, pharmacy, etc.
-- "general": Any other question (benefits, dosage, shipping, etc.)
+- "store": User asks about PHYSICAL RETAIL STORE LOCATIONS (pharmacy near me, find stores in KL, where to buy near JB, stores in Singapore, Caring pharmacy, Watsons, Guardian)
+- "marketplace": User asks about ONLINE MARKETPLACE PURCHASING (buy on Lazada, Shopee, TikTok, official website, is it on Shopee?, available on TikTok?, can I buy from Lazada?)
+- "general": Any other question (benefits, dosage, shipping, "I want to buy", "where to purchase" without specifying platform)
+
+**"HOW TO BUY" IS MARKETPLACE:**
+- "How to buy" → marketplace (NOT general)
+- "How to order" → marketplace
+- "Where can I buy" → marketplace
+- "I want to buy" → marketplace
+- "Show me how to buy" → marketplace
+- "How do I purchase" → marketplace
+
+MARKETPLACE EXAMPLES (route to "marketplace"):
+- "Is this product on Shopee?"
+- "Can I buy from Lazada?"
+- "Do you have TikTok shop?"
+- "Official website link"
+- "Buy from your website"
+- "How to order online?"
+- "I want to buy from Shopee"
+- "Available on Lazada Malaysia?"
+- "How to buy?" (CRITICAL: this is marketplace, NOT general!)
+- "Where to buy online?"
+
+RETAIL STORE EXAMPLES (route to "store"):
+- "Where can I buy near KLCC?"
+- "Find stores in Singapore"
+- "Pharmacy near me"
+- "Stores in Johor"
+- "Watsons near PJ"
+- "Caring pharmacy Shah Alam"
+- "Is it available at Guardian?"
 
 FOLLOW-UP HANDLING:
 - If user says "Price?" or "how much?" and they mentioned a product in history → use that product
@@ -234,13 +264,29 @@ function findProductInHistory(history) {
 function fallbackIntentDetection(userMessage, history = []) {
     const lowerMsg = userMessage.toLowerCase();
 
+    // Location list (must be before usage)
+    const locations = ['singapore', 'malaysia', 'kl', 'kuala lumpur', 'pj', 'petaling jaya', 'subang', 'subang jaya',
+        'shah alam', 'penang', 'johor', 'jb', 'johor bahru', 'ipoh', 'melaka', 'seremban',
+        'indonesia', 'thailand', 'philippines', 'vietnam', 'sabah', 'sarawak'];
+
     // Price keywords
     const priceKeywords = ['price', 'cost', 'how much', 'rm', 'sg$', 'dollars', 'cheap'];
     const isPrice = priceKeywords.some(k => lowerMsg.includes(k));
 
-    // Store keywords
-    const storeKeywords = ['where to buy', 'where can i buy', 'store', 'stores', 'pharmacy', 'buy', 'watsons', 'guardian', 'caring', 'retail'];
+    // Marketplace keywords (online platforms)
+    const marketplaceKeywords = ['lazada', 'shopee', 'tiktok', 'official website', 'official store',
+        'buy online', 'buy from', 'marketplace', 'online purchase', 'vt.tiktok'];
+    const isMarketplace = marketplaceKeywords.some(k => lowerMsg.includes(k));
+
+    // Physical store keywords (retail locations)
+    const storeKeywords = ['where to buy', 'where can i buy', 'store', 'stores', 'pharmacy',
+        'watsons', 'guardian', 'caring', 'retail', 'near me', 'near'];
     const isStore = storeKeywords.some(k => lowerMsg.includes(k));
+
+    // Check for location-specific buy queries (these should go to store)
+    const hasLocation = locations.some(loc => lowerMsg.includes(loc));
+    const hasBuyKeyword = lowerMsg.includes('buy');
+    const isPhysicalStoreQuery = hasBuyKeyword && hasLocation;
 
     // Detect currency
     let currency = null;
@@ -253,10 +299,6 @@ function fallbackIntentDetection(userMessage, history = []) {
 
     // Detect location
     let location = null;
-    const locations = ['singapore', 'malaysia', 'kl', 'kuala lumpur', 'pj', 'petaling jaya', 'subang', 'subang jaya',
-        'shah alam', 'penang', 'johor', 'jb', 'johor bahru', 'ipoh', 'melaka', 'seremban',
-        'indonesia', 'thailand', 'philippines', 'vietnam', 'sabah', 'sarawak'];
-
     for (const loc of locations) {
         if (lowerMsg.includes(loc)) {
             location = loc;
@@ -273,7 +315,8 @@ function fallbackIntentDetection(userMessage, history = []) {
 
     let intent = 'general';
     if (isPrice) intent = 'price';
-    else if (isStore) intent = 'store';
+    else if (isMarketplace) intent = 'marketplace';
+    else if (isStore || isPhysicalStoreQuery) intent = 'store';
 
     console.log(`[ROUTER] Fallback detected: intent=${intent}, product=${product}, currency=${currency}, location=${location}`);
 
@@ -304,6 +347,142 @@ function getCurrencyFromPhone(phoneNumber) {
     if (cleanPhone.startsWith('84')) return 'VND';
 
     return null;
+}
+
+/**
+ * Extract region from phone number (for marketplace URL selection)
+ */
+function getRegionFromPhone(phoneNumber) {
+    if (!phoneNumber) return null;
+    const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
+    if (cleanPhone.startsWith('65')) return 'Singapore';
+    if (cleanPhone.startsWith('60')) return 'Malaysia';
+    return null;
+}
+
+/**
+ * Extract marketplace URL from knowledge base based on user request
+ * Returns: { type, url, platform, region, officialUrl }
+ */
+function extractMarketplaceUrl(userMessage, phoneNumber, kb) {
+    const lowerMsg = userMessage.toLowerCase();
+    const ecommerceStores = kb?.ecommerceStores || {};
+    const marketplaces = ecommerceStores.marketplaces || [];
+    const official = ecommerceStores.official || {};
+
+    console.log(`[ROUTER] extractMarketplaceUrl: msg="${userMessage}", phone=${phoneNumber}`);
+    console.log(`[ROUTER] Available marketplaces in KB:`, marketplaces.map(m => `${m.platform}/${m.region}`));
+
+    // Detect platform from message (case-insensitive matching, preserve KB case for display)
+    let requestedPlatform = null;
+
+    // Map lowercase detection to KB case (case-insensitive match)
+    const platformMap = {
+        'lazada': 'Lazada',
+        'shopee': 'Shopee',
+        'tiktok': 'TikTok Shop'
+    };
+
+    if (lowerMsg.includes('lazada')) requestedPlatform = platformMap['lazada'];
+    else if (lowerMsg.includes('shopee')) requestedPlatform = platformMap['shopee'];
+    else if (lowerMsg.includes('tiktok')) requestedPlatform = platformMap['tiktok'];
+    else if (lowerMsg.includes('official website') || lowerMsg.includes('official store')) {
+        console.log(`[ROUTER] Platform detected: official website`);
+        return {
+            type: 'official',
+            url: official.url || 'https://www.dyna-nutrition.com',
+            name: official.name || 'Official Website',
+            platform: null,
+            region: null
+        };
+    }
+
+    console.log(`[ROUTER] Platform detected from message: ${requestedPlatform}`);
+
+    // Detect region: try message first, then phone
+    let region = null;
+
+    // Check message for region
+    if (lowerMsg.includes('singapore') || lowerMsg.includes('sg ')) region = 'Singapore';
+    else if (lowerMsg.includes('malaysia') || lowerMsg.includes('my ')) region = 'Malaysia';
+
+    // If no region in message, try phone number
+    if (!region) {
+        region = getRegionFromPhone(phoneNumber);
+    }
+
+    // If still no region, check phone for default
+    if (!region && phoneNumber) {
+        const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
+        if (cleanPhone.startsWith('65')) region = 'Singapore';
+        else if (cleanPhone.startsWith('60')) region = 'Malaysia';
+    }
+
+    console.log(`[ROUTER] Region detected: ${region} (from phone: ${phoneNumber})`);
+
+    // Find matching marketplace
+    if (requestedPlatform) {
+        console.log(`[ROUTER] Looking for platform="${requestedPlatform}", region="${region}"`);
+        console.log(`[ROUTER] Checking each marketplace entry...`);
+        for (const m of marketplaces) {
+            console.log(`  - ${m.platform}/${m.region}: match=${m.platform === requestedPlatform && (region === null || m.region === region)}`);
+        }
+
+        if (region) {
+            // Has platform AND region - find exact match
+            const match = marketplaces.find(m => m.platform === requestedPlatform && m.region === region);
+            console.log(`[ROUTER] Exact match result: ${match ? match.url : 'null'}`);
+            if (match) {
+                return {
+                    type: 'marketplace',
+                    url: match.url,
+                    name: match.name,
+                    platform: match.platform,
+                    region: match.region
+                };
+            }
+            // Platform found but not for this region
+            console.log(`[ROUTER] Platform found but not for region ${region}`);
+            return {
+                type: 'platform_not_found',
+                url: null,
+                name: null,
+                platform: requestedPlatform,
+                region: region
+            };
+        } else {
+            // Has platform but no region - return all platforms of that type
+            const matches = marketplaces.filter(m => m.platform === requestedPlatform);
+            console.log(`[ROUTER] No region, found ${matches.length} matches for ${requestedPlatform}`);
+            if (matches.length === 1) {
+                return {
+                    type: 'marketplace',
+                    url: matches[0].url,
+                    name: matches[0].name,
+                    platform: matches[0].platform,
+                    region: matches[0].region
+                };
+            }
+            // Multiple matches (MY + SG) - need region
+            return {
+                type: 'need_region',
+                url: null,
+                name: null,
+                platform: requestedPlatform,
+                region: null,
+                availableRegions: matches.map(m => m.region)
+            };
+        }
+    }
+
+    // No specific platform detected - return official website
+    return {
+        type: 'official',
+        url: official.url || 'https://www.dyna-nutrition.com',
+        name: official.name || 'Official Website',
+        platform: null,
+        region: null
+    };
 }
 
 /**
@@ -390,6 +569,38 @@ async function routeMessage(userMessage, userId, phoneNumber, apiKey, history = 
         };
     }
 
+    // Marketplace query - extract URL from knowledge base and route to deepseek
+    if (intent.intent === 'marketplace') {
+        // Load knowledge base
+        const { getKnowledge } = require('./knowledgeLoader');
+        const kb = getKnowledge();
+
+        // Extract marketplace URL
+        const urlInfo = extractMarketplaceUrl(userMessage, phoneNumber, kb);
+        console.log(`[ROUTER] Marketplace URL extraction: type=${urlInfo.type}, platform=${urlInfo.platform}, region=${urlInfo.region}`);
+
+        // Track mentioned product for future follow-ups
+        const mentionedProduct = extractProductFromText(userMessage) || findProductInHistory(history);
+        if (mentionedProduct) {
+            updateMentionedProduct(userId, mentionedProduct);
+            console.log(`[ROUTER] Marketplace query tracked product: ${mentionedProduct}`);
+        }
+
+        // Route to deepseek with extracted URL info
+        return {
+            handler: 'deepseek',
+            params: {
+                isMarketplaceQuery: true,
+                marketplaceUrl: urlInfo.url,
+                marketplaceType: urlInfo.type, // 'official', 'marketplace', 'platform_not_found', 'need_region'
+                marketplaceName: urlInfo.name,
+                marketplacePlatform: urlInfo.platform,
+                marketplaceRegion: urlInfo.region,
+                availableRegions: urlInfo.availableRegions
+            }
+        };
+    }
+
     // General query - track mentioned product for future follow-ups
     const mentionedProduct = extractProductFromText(userMessage) || findProductInHistory(history);
     if (mentionedProduct) {
@@ -407,6 +618,8 @@ module.exports = {
     analyzeIntent,
     routeMessage,
     getCurrencyFromPhone,
+    getRegionFromPhone,
+    extractMarketplaceUrl,
     KNOWN_PRODUCTS,
     extractProductFromText,
     buildConversationContext

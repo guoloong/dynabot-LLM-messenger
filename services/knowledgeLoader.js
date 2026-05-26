@@ -65,7 +65,8 @@ function loadKnowledge() {
         cachedKnowledge = {
             products,
             general: mainData.general || {},
-            guidelines: guidelines || {}
+            guidelines: guidelines || {},
+            ecommerceStores: mainData.ecommerceStores || {}
         };
 
         mainFileMtime = fileMtime(MAIN_KB_FILE);
