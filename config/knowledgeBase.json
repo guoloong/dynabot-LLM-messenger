@@ -12,5 +12,52 @@
     "payment": "For payment questions, use the payment information: {payment}. If the user asks about refunds, refer to the returns policy.",
     "returns": "For return and refund questions, always ask for the reason first. After tha follow the returns policy: {returns}. Guide the user to contact support with their order number.",
     "answer_presentation": "Keep all answers concise, friendly, and well‑structured. Use emoji-prefixed bullet points (🔥, ✅, 💪, etc.) for lists and emphasis. NEVER use bold (**), italics (*), or any markdown formatting. Use emojis to highlight important points. Always insert images at the end. Always end with an offer to help further or connect with a human if needed."
+  },
+  "ecommerceStores": {
+    "official": {
+      "name": "Official Website (Global Store)",
+      "url": "https://www.dyna-nutrition.com"
+    },
+    "marketplaces": [
+      {
+        "platform": "Lazada",
+        "region": "Malaysia",
+        "name": "Lazada Malaysia",
+        "url": "https://www.lazada.com.my/shop/dynamic-nutrition/"
+      },
+      {
+        "platform": "Lazada",
+        "region": "Singapore",
+        "name": "Lazada Singapore",
+        "url": "https://www.lazada.sg/shop/dynamic-nutrition-sg/"
+      },
+      {
+        "platform": "Shopee",
+        "region": "Malaysia",
+        "name": "Shopee Malaysia",
+        "url": "https://shopee.com.my/dynamicnutrition123"
+      },
+      {
+        "platform": "Shopee",
+        "region": "Singapore",
+        "name": "Shopee Singapore",
+        "url": "https://shopee.sg/dynamicnutrition"
+      },
+      {
+        "platform": "TikTok Shop",
+        "region": "Malaysia",
+        "name": "TikTok Shop Malaysia",
+        "url": "https://vt.tiktok.com/ZSxHyeRr5/?page=TikTokShop"
+      },
+      {
+        "platform": "TikTok Shop",
+        "region": "Singapore",
+        "name": "TikTok Shop Singapore",
+        "url": "https://vt.tiktok.com/ZSxHUnfKe/?page=TikTokShop"
+      }
+    ],
+    "retailStores": {
+      "description": "Available at pharmacies and organic shops in Malaysia and Singapore. Ask for store locator for details."
+    }
   }
 }
