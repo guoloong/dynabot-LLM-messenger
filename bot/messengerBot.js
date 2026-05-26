@@ -413,7 +413,8 @@ class MessengerBot {
                 messageText,
                 '',
                 process.env.DEEPSEEK_API_KEY,
-                history
+                history,
+                route.params
             );
 
             const finalReply = response.text || "I'm having trouble responding. Please try again.";
