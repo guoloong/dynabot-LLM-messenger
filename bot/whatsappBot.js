@@ -9,8 +9,8 @@ const {
     generateResponse
 } = require('../services/deepseek');
 const { routeMessage } = require('../services/messageRouter');
-const { getProductPrice, formatPriceResponse } = require('../services/priceApi');
-const { findStores } = require('../services/storeLocator');
+const { getPriceResponse } = require('../services/priceApi');
+const { getStoreResponse } = require('../services/storeLocator');
 const { splitIntoChunks } = require('../utils/llmMessageSplitter');
 const { getHistory, addMessage, hasProductBeenShown, markProductAsShown } = require('../utils/memory');
 const { setContact, getPhoneNumber } = require('../utils/contactCache');
@@ -119,9 +119,9 @@ setInterval(() => {
 }, 60000);
 
 /**
- * Handle a price query using priceApi
+ * Handle a price query using priceApi with translation
  */
-async function handlePriceQuery(msg, productName, currency, phoneNumber, apiKey) {
+async function handlePriceQuery(msg, productName, currency, phoneNumber, apiKey, currentMessage) {
     console.log(`[BOT] Processing price query: product=${productName}, currency=${currency}`);
 
     if (!productName) {
@@ -130,10 +130,9 @@ async function handlePriceQuery(msg, productName, currency, phoneNumber, apiKey)
     }
 
     try {
-        const priceInfo = await getProductPrice(productName, phoneNumber, apiKey, currency);
+        const response = await getPriceResponse(productName, phoneNumber, apiKey, currentMessage, currency);
 
-        if (priceInfo) {
-            const response = formatPriceResponse(productName, priceInfo, currency);
+        if (response) {
             await sendLongMessage(msg, response, apiKey);
         } else {
             await msg.reply(`I'm sorry, I couldn't find pricing information for ${productName}. Please contact our support team.`);
@@ -145,13 +144,13 @@ async function handlePriceQuery(msg, productName, currency, phoneNumber, apiKey)
 }
 
 /**
- * Handle a store locator query
+ * Handle a store locator query with translation
  */
-async function handleStoreQuery(msg, userMessage, apiKey, routeParams = {}) {
+async function handleStoreQuery(msg, userMessage, apiKey, routeParams, currentMessage) {
     console.log(`[BOT] Processing store query`);
 
     try {
-        const storeResult = await findStores(userMessage, apiKey, routeParams);
+        const storeResult = await getStoreResponse(userMessage, apiKey, routeParams, currentMessage);
 
         if (storeResult.needsLocation) {
             await sendLongMessage(msg, storeResult.text, apiKey);
@@ -593,7 +592,8 @@ function initWhatsAppBot() {
                     route.params.productName,
                     route.params.currency,
                     route.params.phoneNumber || phoneNumber,
-                    process.env.DEEPSEEK_API_KEY
+                    process.env.DEEPSEEK_API_KEY,
+                    msgBody
                 );
                 addMessage(userId, "user", msgBody);
                 addMessage(userId, "assistant", "[Price Query]");
@@ -601,7 +601,7 @@ function initWhatsAppBot() {
             }
 
             if (route.handler === 'storeLocator') {
-                await handleStoreQuery(msg, msgBody, process.env.DEEPSEEK_API_KEY, route.params);
+                await handleStoreQuery(msg, msgBody, process.env.DEEPSEEK_API_KEY, route.params, msgBody);
                 addMessage(userId, "user", msgBody);
                 addMessage(userId, "assistant", "[Store Query]");
                 return;

@@ -5,8 +5,8 @@ const express = require('express');
 const axios = require('axios');
 const { generateResponse } = require('../services/deepseek');
 const { routeMessage } = require('../services/messageRouter');
-const { getProductPrice, formatPriceResponse } = require('../services/priceApi');
-const { findStores } = require('../services/storeLocator');
+const { getPriceResponse } = require('../services/priceApi');
+const { getStoreResponse } = require('../services/storeLocator');
 const { getHistory, addMessage } = require('../utils/memory');
 const { splitIntoChunks } = require('../utils/llmMessageSplitter');
 const { stripMarkdownFormatting } = require('../utils/stripMarkdown');
@@ -397,12 +397,12 @@ class MessengerBot {
 
             // Handle based on route
             if (route.handler === 'priceApi') {
-                await this.handlePriceQuery(senderPsid, route.params.productName, route.params.currency);
+                await this.handlePriceQuery(senderPsid, route.params.productName, route.params.currency, messageText);
                 return;
             }
 
             if (route.handler === 'storeLocator') {
-                await this.handleStoreQuery(senderPsid, messageText, route.params);
+                await this.handleStoreQuery(senderPsid, messageText, route.params, messageText);
                 return;
             }
 
@@ -540,8 +540,8 @@ class MessengerBot {
         }
     }
 
-    // Handle price query
-    async handlePriceQuery(senderPsid, productName, currency) {
+    // Handle price query with translation
+    async handlePriceQuery(senderPsid, productName, currency, currentMessage) {
         console.log(`[MESSENGER] Processing price query: product=${productName}, currency=${currency}`);
 
         if (!productName) {
@@ -550,10 +550,9 @@ class MessengerBot {
         }
 
         try {
-            const priceInfo = await getProductPrice(productName, null, process.env.DEEPSEEK_API_KEY, currency);
+            const response = await getPriceResponse(productName, null, process.env.DEEPSEEK_API_KEY, currentMessage, currency);
 
-            if (priceInfo) {
-                const response = formatPriceResponse(productName, priceInfo, currency);
+            if (response) {
                 await this.sendLongMessage(senderPsid, response);
             } else {
                 await this.sendMessage(senderPsid,
@@ -566,12 +565,12 @@ class MessengerBot {
         }
     }
 
-    // Handle store locator query
-    async handleStoreQuery(senderPsid, userMessage, routeParams) {
+    // Handle store locator query with translation
+    async handleStoreQuery(senderPsid, userMessage, routeParams, currentMessage) {
         console.log(`[MESSENGER] Processing store query`);
 
         try {
-            const storeResult = await findStores(userMessage, process.env.DEEPSEEK_API_KEY, routeParams);
+            const storeResult = await getStoreResponse(userMessage, process.env.DEEPSEEK_API_KEY, routeParams, currentMessage);
 
             if (storeResult.needsLocation) {
                 await this.sendLongMessage(senderPsid, storeResult.text);
