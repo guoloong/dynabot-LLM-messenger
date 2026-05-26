@@ -3,6 +3,7 @@
 // Handles multi-currency pricing and product slug normalization
 
 const axios = require('axios');
+const { translateWithHistory } = require('../utils/translateWithHistory');
 
 const API_BASE_URL = 'https://www.dyna-nutrition.com/wp-json/woo-country-price/v1';
 
@@ -434,6 +435,28 @@ async function getProductPrice(productName, phoneNumber, apiKey = null, forcedCu
 }
 
 /**
+ * Get localized price response - wraps existing logic with translation
+ * @param {string} productName - Product name to look up
+ * @param {string} phoneNumber - User's phone number for currency detection
+ * @param {string} apiKey - DeepSeek API key for translation
+ * @param {string} currentMessage - User's current message for language detection
+ * @param {string} forcedCurrency - Optional currency override
+ * @returns {string|null} Localized price response or null if not found
+ */
+async function getPriceResponse(productName, phoneNumber, apiKey, currentMessage, forcedCurrency = null) {
+    // 1. Get English response using existing logic
+    const priceInfo = await getProductPrice(productName, phoneNumber, apiKey, forcedCurrency);
+    if (!priceInfo) {
+        return null;
+    }
+
+    const englishResponse = formatPriceResponse(productName, priceInfo, forcedCurrency);
+
+    // 2. Translate using current message language
+    return await translateWithHistory(englishResponse, currentMessage, [], apiKey);
+}
+
+/**
  * Format price response for user
  */
 function formatPriceResponse(productName, priceInfo, requestedCurrency = null) {
@@ -491,6 +514,7 @@ function getCurrencySymbol(currency) {
 
 module.exports = {
     getProductPrice,
+    getPriceResponse,
     getProductSlug,
     getCurrencyFromPhone,
     fetchProductData,

@@ -4,6 +4,7 @@
 const axios = require('axios');
 const path = require('path');
 const fs = require('fs');
+const { translateWithHistory } = require('../utils/translateWithHistory');
 
 // Load store locator config
 const configPath = path.join(__dirname, '../config/storeLocatorConfig.json');
@@ -805,8 +806,46 @@ function clearPendingProduct() {
     pendingTimestamp = 0;
 }
 
+/**
+ * Get localized store response - wraps existing logic with translation
+ * @param {string} userMessage - User's current message
+ * @param {string} apiKey - DeepSeek API key for translation
+ * @param {Object} routeParams - Route parameters from messageRouter
+ * @param {string} currentMessage - User's current message for language detection
+ * @returns {Object} Store response object with translated text
+ */
+async function getStoreResponse(userMessage, apiKey, routeParams, currentMessage) {
+    // 1. Get result using existing logic
+    const result = await findStores(userMessage, apiKey, routeParams);
+
+    // 2. Translate text field if present and has stores (addresses to preserve)
+    if (result.text) {
+        let preserveItems = [];
+
+        // Build preserve list from store data to keep addresses in English
+        if (result.stores && result.stores.length > 0) {
+            preserveItems = result.stores.map(s => {
+                const parts = [`Store: ${s.name || 'N/A'}`];
+                if (s.address) parts.push(`Address: ${s.address}`);
+                if (s.phone) parts.push(`Phone: ${s.phone}`);
+                return parts.join(', ');
+            });
+        }
+
+        // Also preserve the online store URL from config
+        if (storeLocatorConfig.onlineStoreUrl) {
+            preserveItems.push(`Website: ${storeLocatorConfig.onlineStoreUrl}`);
+        }
+
+        result.text = await translateWithHistory(result.text, currentMessage, preserveItems, apiKey);
+    }
+
+    return result;
+}
+
 module.exports = {
     findStores,
+    getStoreResponse,
     isStoreQuery,
     isStoreQueryWithLLM,
     fetchProducts,
