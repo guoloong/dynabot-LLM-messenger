@@ -213,6 +213,13 @@ function buildGuidelinesPrompt(guidelines) {
     if (guidelines.payment) text += `PAYMENT GUIDELINES:\n${guidelines.payment}\n\n`;
     if (guidelines.returns) text += `RETURNS GUIDELINES:\n${guidelines.returns}\n\n`;
     if (guidelines.answer_presentation) text += `ANSWER PRESENTATION GUIDELINES:\n${guidelines.answer_presentation}\n\n`;
+
+    // Add acknowledgment handling
+    text += `ACKNOWLEDGMENT HANDLING:
+- When user says "好的", "ok", "okay", "oo", "ooo", "thanks", "thank you", "baik", or similar brief acknowledgments: respond with a SHORT friendly reply like "Glad that I can help you!" and offer to help with anything else
+- DO NOT expand on, repeat, or generate new information when user is just acknowledging
+- DO NOT list more stores or repeat what was already said - keep acknowledgment responses brief and simple`;
+
     return text;
 }
 
