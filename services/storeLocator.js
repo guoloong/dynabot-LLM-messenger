@@ -7,7 +7,7 @@ const fs = require('fs');
 
 // Load store locator config
 const configPath = path.join(__dirname, '../config/storeLocatorConfig.json');
-let storeLocatorConfig = { regionsWithPhysicalStores: [], onlineStoreUrl: '', storeNotAvailableMessage: '' };
+let storeLocatorConfig = { supportedCountries: [], onlineStoreUrl: '', storeNotAvailableMessage: '' };
 try {
     const configData = fs.readFileSync(configPath, 'utf8');
     storeLocatorConfig = JSON.parse(configData);
@@ -109,6 +109,73 @@ function getSpecificAreasMessage(location) {
         return `Malaysia is a large country. Could you please share a more specific area?\n\nFor example:\n• "in Subang Jaya"\n• "near KLCC"\n• "in Shah Alam"\n• "in Petaling Jaya"`;
     }
     return `Could you share a more specific area?\n\nFor example:\n• "in [area name]"\n• "near [landmark]"`;
+}
+
+/**
+ * Uses LLM to check if location is in a supported country (Malaysia or Singapore)
+ */
+async function classifyLocationWithDeepSeek(location, apiKey) {
+    const prompt = `You are a geographic classifier for a store locator system.
+
+Supported countries: Malaysia, Singapore
+
+Given the location: "${location}"
+
+Determine if this location is in a supported country. Be lenient - any location in Malaysia or Singapore should be marked as supported.
+
+Return JSON:
+{
+  "isSupported": true/false,
+  "country": "malaysia" | "singapore" | "unsupported" | "unknown",
+  "confidence": "high" | "medium" | "low"
+}
+
+Examples:
+- "Subang Jaya" → {"isSupported": true, "country": "malaysia", "confidence": "high"}
+- "Hong Kong" → {"isSupported": false, "country": "unsupported", "confidence": "high"}
+- "Orchard Road" → {"isSupported": true, "country": "singapore", "confidence": "high"}
+- "Sydney" → {"isSupported": false, "country": "unsupported", "confidence": "high"}
+- "Johor" → {"isSupported": true, "country": "malaysia", "confidence": "high"}`;
+
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+        const response = await axios.post(
+            'https://api.deepseek.com/v1/chat/completions',
+            {
+                model: 'deepseek-chat',
+                messages: [
+                    { role: 'system', content: 'You are a JSON parser. Return ONLY valid JSON, no markdown.' },
+                    { role: 'user', content: prompt }
+                ],
+                temperature: 0,
+                max_tokens: 100
+            },
+            {
+                headers: { 'Authorization': `Bearer ${apiKey}` },
+                signal: controller.signal,
+                timeout: 10000
+            }
+        );
+
+        clearTimeout(timeoutId);
+        const content = response.data.choices[0].message.content.trim();
+        let jsonStr = content.replace(/```json\n?|```\n?/gi, '').trim();
+        const parsed = JSON.parse(jsonStr);
+
+        return {
+            isSupported: parsed.isSupported ?? false,
+            country: parsed.country || 'unknown',
+            confidence: parsed.confidence || 'low'
+        };
+    } catch (err) {
+        console.log(`[STORE] Location classification failed: ${err.message}`);
+        // Fallback: check against supported countries list directly
+        const lowerLoc = location.toLowerCase();
+        const isSupported = ['malaysia', 'singapore'].some(c => lowerLoc.includes(c));
+        return { isSupported, country: isSupported ? 'unknown' : 'unsupported', confidence: 'fallback' };
+    }
 }
 
 // Known locations for reference
@@ -456,14 +523,12 @@ async function findStores(userMessage, apiKey, routeParams = {}) {
         }
     }
 
-    // Step 4: Check if location is in a supported region
+    // Step 4: Check if location is in a supported country using LLM
     // If not, skip API call and go straight to online purchase suggestion
-    const locationLower = intent.location?.toLowerCase() || '';
-    const isKnownRegionWithStores = storeLocatorConfig.regionsWithPhysicalStores.some(
-        r => locationLower.includes(r)
-    );
+    const locationCheck = await classifyLocationWithDeepSeek(intent.location, apiKey);
+    console.log(`[STORE] Location classification:`, locationCheck);
 
-    if (intent.location && !isKnownRegionWithStores) {
+    if (!locationCheck.isSupported) {
         console.log(`[STORE] Location "${intent.location}" is not in supported regions, suggesting online purchase`);
         return {
             success: true,
@@ -532,11 +597,11 @@ async function findStores(userMessage, apiKey, routeParams = {}) {
     if (noStoresInArea) {
         let text;
 
-        if (isKnownRegionWithStores) {
-            // Known region (Malaysia/Singapore) but no stores for this product
+        if (locationCheck.isSupported) {
+            // Known country (Malaysia/Singapore) but no stores for this product
             text = `Sorry, I couldn't find any ${productDisplayName} stores in ${intent.location}.\n\nOur products are available in major cities like Singapore, Kuala Lumpur, Penang, Johor, and other areas.\n\nWould you like to try a different location?`;
         } else {
-            // Region without physical stores (HK, etc) - suggest online purchase
+            // Region without physical stores - suggest online purchase
             text = `Sorry, we don't have physical stores in ${intent.location}.\n\nYou can purchase online from our official store: ${storeLocatorConfig.onlineStoreUrl}`;
         }
 
@@ -747,6 +812,7 @@ module.exports = {
     fetchProducts,
     fetchStoresForProduct,
     analyzeUserIntent,
+    classifyLocationWithDeepSeek,
     clearPendingProduct,
     trackMentionedProduct,
     getLastMentionedProduct,
