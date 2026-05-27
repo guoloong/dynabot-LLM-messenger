@@ -18,6 +18,7 @@ const { stripMarkdownFormatting } = require('../utils/stripMarkdown');
 const { PLATFORM_WHATSAPP } = require('../utils/humanHandoff');
 const { getQuickActionsText, isQuickActionResponse, formatProductDisplayName } = require('./quickReplyButtons');
 const { getContext } = require('../services/contextManager');
+const { translateWithHistory } = require('../utils/translateWithHistory');
 
 // Helper function to decode WhatsApp LID to actual phone number
 function decodeLIDtoPhone(lid) {
@@ -231,53 +232,89 @@ function initWhatsAppBot() {
 
         // ========================================
         // QUICK ACTION RESPONSE HANDLING (1, 2, 3)
+        // NEW APPROACH: Translate button text, then pass to normal flow
         // ========================================
 
         const quickAction = isQuickActionResponse(msgBody);
         if (quickAction) {
-            // Check context manager for last mentioned product (not route.params)
-            const ctx = getContext(userId);
-            const lastProduct = ctx?.lastMentionedProduct || ctx?.lastPriceProduct || null;
+            // Get conversation history for language detection (not just "1")
+            const history = getHistory(userId);
+            const lastUserMessage = history.length > 0
+                ? history[history.length - 1].content
+                : msgBody;
 
-            if (lastProduct) {
-                console.log(`[BOT] Quick action detected: ${quickAction} for product: ${lastProduct}`);
+            // Button templates (English)
+            const BUTTON_TEMPLATES = {
+                price: 'May I know the price?',
+                buyOnline: 'I want to buy online.',
+                retailStore: 'I want to buy from a retail store.'
+            };
 
-                // Route the quick action to appropriate handler
-                if (quickAction === 'price') {
-                    await handlePriceQuery(
-                        msg,
-                        lastProduct,
-                        null, // let it auto-detect currency
-                        getPhoneNumber(userId),
-                        process.env.DEEPSEEK_API_KEY,
-                        msgBody
-                    );
-                    return;
-                } else if (quickAction === 'buyOnline' || quickAction === 'retailStore') {
-                    // Treat both as store/marketplace query with product name
-                    // Use formatProductDisplayName to get the same display name as shown in Quick Actions menu
-                    const productDisplay = formatProductDisplayName(lastProduct);
+            // Translate button text to user's language
+            const englishTemplate = BUTTON_TEMPLATES[quickAction];
+            let translatedMsg = englishTemplate;
 
-                    const response = await generateResponse(
-                        quickAction === 'buyOnline'
-                            ? `I want to buy ${productDisplay} from online store.`
-                            : `I want to buy ${productDisplay} from a retail store.`,
-                        '',
-                        process.env.DEEPSEEK_API_KEY,
+            if (lastUserMessage && lastUserMessage.length > 2) {
+                try {
+                    translatedMsg = await translateWithHistory(
+                        englishTemplate,
+                        lastUserMessage, // Use conversation context, not "1"
                         [],
-                        { lastProductMentioned: lastProduct }
+                        process.env.DEEPSEEK_API_KEY
                     );
-                    await sendLongMessage(msg, response.text, process.env.DEEPSEEK_API_KEY);
-                    addMessage(userId, "user", msgBody);
-                    addMessage(userId, "assistant", response.text);
-                    return;
+                    console.log(`[BOT] Quick action translated: "${englishTemplate}" → "${translatedMsg}"`);
+                } catch (err) {
+                    console.error('[BOT] Translation failed, using English:', err.message);
                 }
-            } else {
-                // No product context - ask user which product
-                console.log(`[BOT] Quick action but no product context found`);
-                await msg.reply('Which product would you like to inquire about?');
+            }
+
+            // Pass translated message to normal flow (routeMessage)
+            // This ensures the response is in the same language as the translated message
+            console.log(`[BOT] Passing translated message to routeMessage: "${translatedMsg}"`);
+
+            // Use the translated message as input to routeMessage
+            const phoneNumber = getPhoneNumber(userId) || decodeLIDtoPhone(userId);
+
+            // Route the translated message
+            const route = await routeMessage(translatedMsg, userId, phoneNumber, process.env.DEEPSEEK_API_KEY, history);
+            console.log(`[BOT] Routed to: ${route.handler}`, route.params);
+
+            // Handle based on route (same as normal flow)
+            if (route.handler === 'priceApi') {
+                await handlePriceQuery(
+                    msg,
+                    route.params.productName,
+                    route.params.currency,
+                    route.params.phoneNumber || phoneNumber,
+                    process.env.DEEPSEEK_API_KEY,
+                    translatedMsg // Use translated message for language detection
+                );
+                addMessage(userId, "user", translatedMsg);
+                addMessage(userId, "assistant", "[Price Query]");
                 return;
             }
+
+            if (route.handler === 'storeLocator') {
+                await handleStoreQuery(msg, translatedMsg, process.env.DEEPSEEK_API_KEY, route.params, translatedMsg);
+                addMessage(userId, "user", translatedMsg);
+                addMessage(userId, "assistant", "[Store Query]");
+                return;
+            }
+
+            // Default: General LLM response
+            const response = await generateResponse(
+                translatedMsg,
+                '',
+                process.env.DEEPSEEK_API_KEY,
+                history,
+                route.params,
+                route.params.productName
+            );
+
+            await sendLongMessage(msg, response.text, process.env.DEEPSEEK_API_KEY);
+            addMessage(userId, "user", translatedMsg);
+            addMessage(userId, "assistant", response.text);
+            return;
         }
 
         // ========================================

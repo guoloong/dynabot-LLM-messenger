@@ -105,26 +105,68 @@ async function getQuickActions(userMessage, apiKey) {
  * Get quick action messages formatted as text (for WhatsApp)
  * @param {string} userMessage - User's message for language detection
  * @param {string} apiKey - DeepSeek API key
- * @param {string} productName - Product name to include in header (optional)
+ * @param {string} productName - Product name to include in header (optional, keep English)
  */
 async function getQuickActionsText(userMessage, apiKey, productName = null) {
     const actions = await getQuickActions(userMessage, apiKey);
 
-    // Create product display name (capitalize first letter)
+    // Create product display name (keep as-is, English only)
     const productDisplay = productName
         ? productName.charAt(0).toUpperCase() + productName.slice(1).replace(/-/g, ' ')
         : null;
 
+    // Translate frame text using LLM
+    // Translate "Quick Actions for" as a whole phrase, then append product name (keep English)
+    let headerPrefix = 'Quick Actions for';
+    let replyText = 'Reply with number (1, 2, or 3)';
+
+    if (actions.detectedLang !== 'en') {
+        try {
+            [headerPrefix, replyText] = await Promise.all([
+                translateWithHistory('Quick Actions for', userMessage, [], apiKey),
+                translateWithHistory('Reply with number (1, 2, or 3)', userMessage, [], apiKey)
+            ]);
+        } catch (err) {
+            console.error('[QUICK_REPLY] Frame translation failed:', err.message);
+        }
+    }
+
+    // Build button texts with product name
+    const buyOnlineText = productDisplay
+        ? `${actions.buyOnline.replace(/online\./i, '')} ${productDisplay} online.`.replace(/\s+/g, ' ')
+        : actions.buyOnline;
+
+    const retailStoreText = productDisplay
+        ? `I want to buy ${productDisplay} from a retail store.`
+        : actions.retailStore;
+
+    // Translate button texts with product name
+    let translatedBuyOnline = buyOnlineText;
+    let translatedRetailStore = retailStoreText;
+
+    if (actions.detectedLang !== 'en') {
+        try {
+            [translatedBuyOnline, translatedRetailStore] = await Promise.all([
+                translateWithHistory(buyOnlineText, userMessage, [], apiKey),
+                translateWithHistory(retailStoreText, userMessage, [], apiKey)
+            ]);
+        } catch (err) {
+            console.error('[QUICK_REPLY] Button translation failed:', err.message);
+            translatedBuyOnline = buyOnlineText;
+            translatedRetailStore = retailStoreText;
+        }
+    }
+
     return {
         text: `
 ━━━━━━━━━━━━━━━━━━━━━━
-📋 Quick Actions${productDisplay ? ` for ${productDisplay}` : ''}
+📋 ${productDisplay ? `${headerPrefix} ${productDisplay}` : headerPrefix}
 
 1️⃣ 💰 ${actions.price}
-2️⃣ 🛒 ${productDisplay ? actions.buyOnline.replace(/online\./i, `${productDisplay} online.`) : actions.buyOnline}
-3️⃣ 🏪 ${productDisplay ? actions.retailStore.replace(/a retail store\./i, `${productDisplay} from a retail store.`) : actions.retailStore}
+2️⃣ 🛒 ${translatedBuyOnline}
+3️⃣ 🏪 ${translatedRetailStore}
 
-*Reply with number (1, 2, or 3)*
+*${replyText}*
 ━━━━━━━━━━━━━━━━━━━━━━
 `,
         detectedLang: actions.detectedLang,
