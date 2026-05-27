@@ -524,7 +524,17 @@ async function findStores(userMessage, apiKey, routeParams = {}) {
         }
     }
 
-    // Step 4: Check if location is in a supported country using LLM
+    // Step 4: If location is null, ask user for it (null means unknown, not unsupported)
+    if (!intent.location) {
+        console.log(`[STORE] Location is null, asking user for their location`);
+        return {
+            needsLocation: true,
+            text: `To find stores, please share your location/area.\n\nExample responses:\n- "in Singapore"\n- "near Subang Jaya"\n- "I'm in Shah Alam"\n- "Selangor area"`,
+            productSlug: intent.productSlug
+        };
+    }
+
+    // Step 4.5: Check if location is in a supported country using LLM
     // If not, skip API call and go straight to online purchase suggestion
     const locationCheck = await classifyLocationWithDeepSeek(intent.location, apiKey);
     console.log(`[STORE] Location classification:`, locationCheck);
