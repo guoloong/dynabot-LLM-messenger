@@ -7,11 +7,25 @@ const axios = require('axios');
 
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 
-// Button templates in English
+// Button templates in English (short for Messenger 13-char limit)
 const BUTTON_TEMPLATES = {
     price: 'May I know the price?',
     buyOnline: 'I want to buy online.',
     retailStore: 'I want to buy from a retail store.'
+};
+
+// Short button titles (≤13 chars for Messenger)
+const SHORT_BUTTON_TITLES = {
+    price: 'Price',
+    buyOnline: 'Buy Online',
+    retailStore: 'Retail Store'
+};
+
+// Original button templates for click handling (translate back to English-like)
+const CLICK_TEMPLATES = {
+    price: 'price',
+    buyOnline: 'buy online',
+    retailStore: 'buy from a retail store'
 };
 
 /**
@@ -102,6 +116,42 @@ async function getQuickActions(userMessage, apiKey) {
 }
 
 /**
+ * Get translated quick reply prompt for Messenger
+ * Returns a single translated message prompting user to use the buttons
+ * @param {string} userMessage - User's message for language detection
+ * @param {string} apiKey - DeepSeek API key
+ * @param {string} productName - Product name to include (optional)
+ */
+async function getQuickReplyPrompt(userMessage, apiKey, productName = null) {
+    try {
+        // Detect language
+        const lang = await detectLanguageWithLLM(userMessage, apiKey);
+
+        // Build English template
+        let template;
+        if (productName) {
+            const productDisplay = formatProductDisplayName(productName);
+            template = `Quick action for ${productDisplay}. Click the buttons below for price, buy online, or find a retail store.`;
+        } else {
+            template = 'Quick action - click below for price, buy online, or find a retail store.';
+        }
+
+        // Translate if not English
+        if (lang !== 'en') {
+            const translated = await translateWithHistory(template, userMessage, [], apiKey);
+            console.log(`[QUICK_REPLY] Prompt translated: "${template}" → "${translated}"`);
+            return translated;
+        }
+
+        return template;
+
+    } catch (err) {
+        console.error('[QUICK_REPLY] Failed to get prompt:', err.message);
+        return 'Quick action: click below for price, buy online, or find a retail store.';
+    }
+}
+
+/**
  * Get quick action messages formatted as text (for WhatsApp)
  * @param {string} userMessage - User's message for language detection
  * @param {string} apiKey - DeepSeek API key
@@ -177,26 +227,66 @@ async function getQuickActionsText(userMessage, apiKey, productName = null) {
 
 /**
  * Get quick action messages as quick reply format (for Messenger)
- * Returns array of { title, payload } objects
+ * Returns array of { title, payload } objects with SHORT translated titles (≤13 chars)
  */
 async function getQuickReplyButtons(userMessage, apiKey) {
-    const actions = await getQuickActions(userMessage, apiKey);
+    // Detect language once
+    const lang = await detectLanguageWithLLM(userMessage, apiKey);
 
+    // Short English labels for translation (max 13 chars)
+    const shortLabels = {
+        price: 'Price',
+        buyOnline: 'Buy Online',
+        retailStore: 'Retail'
+    };
+
+    // If not English, translate each label
+    if (lang !== 'en' && apiKey) {
+        try {
+            const [priceLabel, buyOnlineLabel, retailLabel] = await Promise.all([
+                translateWithHistory(shortLabels.price, userMessage, [], apiKey),
+                translateWithHistory(shortLabels.buyOnline, userMessage, [], apiKey),
+                translateWithHistory(shortLabels.retailStore, userMessage, [], apiKey)
+            ]);
+
+            return [
+                {
+                    content_type: 'text',
+                    title: `💰 ${priceLabel.substring(0, 11)}`,
+                    payload: 'BTN_PRICE'
+                },
+                {
+                    content_type: 'text',
+                    title: `🛒 ${buyOnlineLabel.substring(0, 8)}`,
+                    payload: 'BTN_BUY_ONLINE'
+                },
+                {
+                    content_type: 'text',
+                    title: `🏪 ${retailLabel.substring(0, 9)}`,
+                    payload: 'BTN_RETAIL'
+                }
+            ];
+        } catch (err) {
+            console.error('[QUICK_REPLY] Button translation failed:', err.message);
+        }
+    }
+
+    // Fallback to English
     return [
         {
             content_type: 'text',
-            title: `💰 ${actions.price}`,
-            payload: `BTN_PRICE_${actions.detectedLang}`
+            title: '💰 Price',
+            payload: 'BTN_PRICE'
         },
         {
             content_type: 'text',
-            title: `🛒 ${actions.buyOnline}`,
-            payload: `BTN_BUY_ONLINE_${actions.detectedLang}`
+            title: '🛒 Buy Online',
+            payload: 'BTN_BUY_ONLINE'
         },
         {
             content_type: 'text',
-            title: `🏪 ${actions.retailStore}`,
-            payload: `BTN_RETAIL_STORE_${actions.detectedLang}`
+            title: '🏪 Retail',
+            payload: 'BTN_RETAIL'
         }
     ];
 }
@@ -225,9 +315,9 @@ function isQuickActionResponse(message) {
 function isQuickReplyPayload(payload) {
     if (!payload) return null;
 
-    if (payload.startsWith('BTN_PRICE_')) return 'price';
-    if (payload.startsWith('BTN_BUY_ONLINE_')) return 'buyOnline';
-    if (payload.startsWith('BTN_RETAIL_STORE_')) return 'retailStore';
+    if (payload === 'BTN_PRICE') return 'price';
+    if (payload === 'BTN_BUY_ONLINE') return 'buyOnline';
+    if (payload === 'BTN_RETAIL') return 'retailStore';
 
     return null;
 }
@@ -244,8 +334,10 @@ function formatProductDisplayName(productName) {
 
 module.exports = {
     BUTTON_TEMPLATES,
+    CLICK_TEMPLATES,
     detectLanguageWithLLM,
     getQuickActions,
+    getQuickReplyPrompt,
     getQuickActionsText,
     getQuickReplyButtons,
     isQuickActionResponse,

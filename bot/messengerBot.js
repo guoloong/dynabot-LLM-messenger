@@ -18,7 +18,7 @@ const {
     PLATFORM_MESSENGER
 } = require('../utils/humanHandoff');
 const { setFacebookUser, getPsidByFacebookName } = require('../utils/contactCache');
-const { getQuickActions, getQuickReplyButtons, isQuickActionResponse, formatProductDisplayName } = require('./quickReplyButtons');
+const { getQuickActions, getQuickReplyButtons, getQuickReplyPrompt, isQuickActionResponse, formatProductDisplayName, CLICK_TEMPLATES } = require('./quickReplyButtons');
 
 // Get fresh handoff module instance
 function getHandoff() {
@@ -528,17 +528,10 @@ class MessengerBot {
                 const history = getHistory(senderPsid);
                 const lastUserMessage = history.length > 0
                     ? history[history.length - 1].content
-                    : title || '';
+                    : '';
 
-                // Button templates (English)
-                const BUTTON_TEMPLATES = {
-                    price: 'May I know the price?',
-                    buyOnline: 'I want to buy online.',
-                    retailStore: 'I want to buy from a retail store.'
-                };
-
-                // Translate button text to user's language
-                const englishTemplate = BUTTON_TEMPLATES[quickAction];
+                // Use CLICK_TEMPLATES for translation
+                const englishTemplate = CLICK_TEMPLATES[quickAction];
                 let translatedMsg = englishTemplate;
 
                 if (lastUserMessage && lastUserMessage.length > 2) {
@@ -546,7 +539,7 @@ class MessengerBot {
                         const { translateWithHistory } = require('../utils/translateWithHistory');
                         translatedMsg = await translateWithHistory(
                             englishTemplate,
-                            lastUserMessage, // Use conversation context, not button title
+                            lastUserMessage, // Use conversation context
                             [],
                             process.env.DEEPSEEK_API_KEY
                         );
@@ -556,7 +549,7 @@ class MessengerBot {
                     }
                 }
 
-                // Pass translated message to normal flow (routeMessage)
+                // Pass translated message to normal flow (routeMessage) - same as WhatsApp
                 console.log(`[MESSENGER] Passing translated message to routeMessage: "${translatedMsg}"`);
 
                 // Route the translated message
@@ -746,32 +739,18 @@ class MessengerBot {
     // Send quick reply buttons with dynamic language translation
     async sendQuickReplyButtons(recipientId, userMessage, productName = null) {
         try {
-            const buttons = await getQuickReplyButtons(userMessage, process.env.DEEPSEEK_API_KEY);
-
-            // Get the translated action texts for the text message
-            const actions = await getQuickActions(userMessage, process.env.DEEPSEEK_API_KEY);
-
-            // Create product display name
-            const productDisplay = productName
-                ? productName.charAt(0).toUpperCase() + productName.slice(1).replace(/-/g, ' ')
-                : null;
-
-            // Create text message with product-specific actions
-            const buyOnline = productDisplay
-                ? actions.buyOnline.replace(/online\./i, `${productDisplay} online.`)
-                : actions.buyOnline;
-            const retailStore = productDisplay
-                ? actions.retailStore.replace(/a retail store\./i, `${productDisplay} from a retail store.`)
-                : actions.retailStore;
-
-            const textMessage = `${actions.price}\n${buyOnline}\n${retailStore}`;
+            // Get translated prompt and short buttons
+            const [prompt, buttons] = await Promise.all([
+                getQuickReplyPrompt(userMessage, process.env.DEEPSEEK_API_KEY, productName),
+                getQuickReplyButtons(userMessage, process.env.DEEPSEEK_API_KEY)
+            ]);
 
             await axios.post(
                 `https://graph.facebook.com/v21.0/me/messages`,
                 {
                     recipient: { id: recipientId },
                     message: {
-                        text: textMessage,
+                        text: prompt,
                         quick_replies: buttons
                     }
                 },
