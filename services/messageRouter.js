@@ -87,16 +87,20 @@ Return ONLY a JSON object with this exact format:
 INTENT DEFINITIONS (IMPORTANT - choose the most specific match):
 - "price": User asks about product cost, pricing, how much, etc.
 - "store": User asks about PHYSICAL RETAIL STORE LOCATIONS (pharmacy near me, find stores in KL, where to buy near JB, stores in Singapore, Caring pharmacy, Watsons, Guardian)
-- "marketplace": User asks about ONLINE MARKETPLACE PURCHASING (buy on Lazada, Shopee, TikTok, official website, is it on Shopee?, available on TikTok?, can I buy from Lazada?)
-- "general": Any other question (benefits, dosage, shipping, "I want to buy", "where to purchase" without specifying platform)
+- "marketplace": User asks about ONLINE MARKETPLACE PURCHASING (buy on Lazada, Shopee, TikTok, official website, official store, e-commerce, is it on Shopee?, available on TikTok?, can I buy from Lazada?)
+- "general": Any other question (benefits, dosage, shipping, "where to purchase" without specifying platform)
 
-**"HOW TO BUY" IS MARKETPLACE:**
+**MARKETPLACE KEY PHRASES (route to "marketplace"):
+- "I want to buy [product] online"
+- "I want to buy [product] from online store"
+- "buy [product] online"
+- "buy [product] from online store"
 - "How to buy" → marketplace (NOT general)
 - "How to order" → marketplace
 - "Where can I buy" → marketplace
-- "I want to buy" → marketplace
 - "Show me how to buy" → marketplace
 - "How do I purchase" → marketplace
+- "online store" or "online purchase"
 
 MARKETPLACE EXAMPLES (route to "marketplace"):
 - "Is this product on Shopee?"
@@ -275,7 +279,7 @@ function fallbackIntentDetection(userMessage, history = []) {
 
     // Marketplace keywords (online platforms)
     const marketplaceKeywords = ['lazada', 'shopee', 'tiktok', 'official website', 'official store',
-        'buy online', 'buy from', 'marketplace', 'online purchase', 'vt.tiktok'];
+        'buy online', 'buy from', 'marketplace', 'online purchase', 'vt.tiktok', 'online store'];
     const isMarketplace = marketplaceKeywords.some(k => lowerMsg.includes(k));
 
     // Physical store keywords (retail locations)
@@ -612,7 +616,9 @@ async function routeMessage(userMessage, userId, phoneNumber, apiKey, history = 
 
     return {
         handler: 'deepseek',
-        params: {}
+        params: {
+            productName: mentionedProduct || null
+        }
     };
 }
 

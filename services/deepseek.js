@@ -166,6 +166,26 @@ function findLastProductName(text, productNames) {
     return lastProduct;
 }
 
+/**
+ * Find KB product key by slug (reverse lookup)
+ * Converts "riflex-360" → "RiFlex 360 Capsule"
+ */
+function findKBKeyBySlug(slug, productNames) {
+    if (!slug) return null;
+    const normalizedSlug = slug.toLowerCase().replace(/-/g, ' ').replace(/\s+/g, ' ').trim();
+
+    for (const name of productNames) {
+        const normalizedName = name.toLowerCase().replace(/-/g, ' ').replace(/\s+/g, ' ').trim();
+        // Check if slug words are contained in product name
+        const slugWords = normalizedSlug.split(' ').filter(w => w.length >= 3);
+        const matchCount = slugWords.filter(w => normalizedName.includes(w)).length;
+        if (matchCount > 0 && (matchCount >= slugWords.length || matchCount >= 2)) {
+            return name;
+        }
+    }
+    return null;
+}
+
 // Helper: get product description
 function getProductDescription(kb, productName) {
     const product = kb.products?.[productName];
@@ -431,24 +451,35 @@ async function callDeepSeekWithRetry(messages, apiKey, maxRetries = 3) {
 }
 
 // Main response generator
-async function generateResponse(userMessage, _, apiKey, history = [], routeParams = {}) {
+// detectedProductSlug: Optional product slug from route params (e.g., "riflex-360")
+async function generateResponse(userMessage, _, apiKey, history = [], routeParams = {}, detectedProductSlug = null) {
     console.log(`\n[DEEPSEEK] NEW QUERY: "${userMessage}"`);
     console.log(`[DEEPSEEK] History length: ${history.length} messages`);
     console.log(`[DEEPSEEK] Route params:`, JSON.stringify(routeParams));
+    console.log(`[DEEPSEEK] Detected product slug: ${detectedProductSlug}`);
 
     const kb = getKnowledge();
     const productNames = Object.keys(kb.products);
 
-    // Detect product for image
-    const productsInMsg = findAllProductNames(userMessage, productNames);
-    const imageProduct = productsInMsg.length > 0 ? findLastProductName(userMessage, productNames) : null;
+    // Detect product for image - prioritize route params detection, fallback to text analysis
+    let imageProduct = null;
+
+    // 1. Try route params detected product (LLM-based, more reliable)
+    if (detectedProductSlug) {
+        imageProduct = findKBKeyBySlug(detectedProductSlug, productNames);
+        console.log(`[DEEPSEEK] KB key from slug "${detectedProductSlug}": ${imageProduct}`);
+    }
+
+    // 2. Fallback: try to detect from message text
+    if (!imageProduct) {
+        const productsInMsg = findAllProductNames(userMessage, productNames);
+        imageProduct = productsInMsg.length > 0 ? findLastProductName(userMessage, productNames) : null;
+    }
+
     const imageUrl = imageProduct ? getProductImageUrl(kb, imageProduct) : null;
 
     // Build knowledge prompt with route params
-    let detectedProductForBrochure = null;
-    if (productsInMsg.length > 0) {
-        detectedProductForBrochure = findLastProductName(userMessage, productNames);
-    }
+    let detectedProductForBrochure = imageProduct;
 
     const kbPrompt = buildKnowledgePrompt(detectedProductForBrochure, routeParams);
     const messages = [
