@@ -18,6 +18,7 @@ const {
     PLATFORM_MESSENGER
 } = require('../utils/humanHandoff');
 const { setFacebookUser, getPsidByFacebookName } = require('../utils/contactCache');
+const { getQuickActions, getQuickReplyButtons, isQuickActionResponse, formatProductDisplayName } = require('./quickReplyButtons');
 
 // Get fresh handoff module instance
 function getHandoff() {
@@ -409,12 +410,14 @@ class MessengerBot {
             // Default: Generate DeepSeek response
             console.log(`[MESSENGER] Routing to DeepSeek (general response)`);
 
+            // Pass detected product from LLM router (more reliable than text matching)
             const response = await generateResponse(
                 messageText,
                 '',
                 process.env.DEEPSEEK_API_KEY,
                 history,
-                route.params
+                route.params,
+                route.params.productName  // Pass detected product slug for reliable image/quick-actions
             );
 
             const finalReply = response.text || "I'm having trouble responding. Please try again.";
@@ -430,6 +433,15 @@ class MessengerBot {
                     await this.sendImageUrl(senderPsid, imageUrl, productName);
                 } catch (err) {
                     console.error('[MESSENGER] Failed to send product image:', err.message);
+                }
+            }
+
+            // Send quick action buttons if product was mentioned
+            if (productName) {
+                try {
+                    await this.sendQuickReplyButtons(senderPsid, messageText, productName);
+                } catch (err) {
+                    console.error('[MESSENGER] Failed to send quick reply buttons:', err.message);
                 }
             }
 
@@ -507,6 +519,46 @@ class MessengerBot {
         }
 
         try {
+            // Handle quick reply button clicks
+            const quickAction = isQuickReplyPayload(payload);
+            if (quickAction) {
+                console.log(`[MESSENGER] Quick reply button clicked: ${quickAction}`);
+
+                // Get the last mentioned product from context
+                const history = getHistory(senderPsid);
+                const { getContext } = require('../services/contextManager');
+                const ctx = getContext(senderPsid);
+                const lastProduct = ctx?.lastMentionedProduct || null;
+
+                // Route to appropriate handler based on button
+                if (quickAction === 'price') {
+                    if (lastProduct) {
+                        await this.handlePriceQuery(senderPsid, lastProduct, null, 'Price inquiry via button');
+                    } else {
+                        await this.sendMessage(senderPsid, 'Which product would you like to know the price of?');
+                    }
+                } else if (quickAction === 'buyOnline' || quickAction === 'retailStore') {
+                    // Generate response for marketplace/store query with product name
+                    const productDisplay = formatProductDisplayName(lastProduct) || 'this product';
+
+                    const response = await generateResponse(
+                        quickAction === 'buyOnline'
+                            ? `I want to buy ${productDisplay} from online store.`
+                            : `I want to buy ${productDisplay} from a retail store.`,
+                        senderPsid,
+                        process.env.DEEPSEEK_API_KEY,
+                        history,
+                        lastProduct ? { lastProductMentioned: lastProduct } : {},
+                        lastProduct  // Pass detected product slug
+                    );
+                    await this.sendLongMessage(senderPsid, response.text || "I can help you with that!");
+                }
+
+                addMessage(senderPsid, 'user', `Clicked: ${quickAction}`);
+                addMessage(senderPsid, 'assistant', `[Button action: ${quickAction}]`);
+                return;
+            }
+
             // Handle specific postbacks
             if (payload === 'GET_STARTED') {
                 await this.sendMessage(senderPsid,
@@ -653,6 +705,49 @@ class MessengerBot {
             console.log(`[MESSENGER] Product image sent for "${productName}"`);
         } catch (err) {
             console.error('[MESSENGER] Error sending image:', err.response?.data || err.message);
+        }
+    }
+
+    // Send quick reply buttons with dynamic language translation
+    async sendQuickReplyButtons(recipientId, userMessage, productName = null) {
+        try {
+            const buttons = await getQuickReplyButtons(userMessage, process.env.DEEPSEEK_API_KEY);
+
+            // Get the translated action texts for the text message
+            const actions = await getQuickActions(userMessage, process.env.DEEPSEEK_API_KEY);
+
+            // Create product display name
+            const productDisplay = productName
+                ? productName.charAt(0).toUpperCase() + productName.slice(1).replace(/-/g, ' ')
+                : null;
+
+            // Create text message with product-specific actions
+            const buyOnline = productDisplay
+                ? actions.buyOnline.replace(/online\./i, `${productDisplay} online.`)
+                : actions.buyOnline;
+            const retailStore = productDisplay
+                ? actions.retailStore.replace(/a retail store\./i, `${productDisplay} from a retail store.`)
+                : actions.retailStore;
+
+            const textMessage = `${actions.price}\n${buyOnline}\n${retailStore}`;
+
+            await axios.post(
+                `https://graph.facebook.com/v21.0/me/messages`,
+                {
+                    recipient: { id: recipientId },
+                    message: {
+                        text: textMessage,
+                        quick_replies: buttons
+                    }
+                },
+                {
+                    params: { access_token: this.PAGE_ACCESS_TOKEN },
+                    headers: { 'Content-Type': 'application/json' }
+                }
+            );
+            console.log('[MESSENGER] Quick reply buttons sent');
+        } catch (err) {
+            console.error('[MESSENGER] Error sending quick reply buttons:', err.response?.data || err.message);
         }
     }
 

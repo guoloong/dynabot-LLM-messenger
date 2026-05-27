@@ -16,6 +16,8 @@ const { getHistory, addMessage, hasProductBeenShown, markProductAsShown } = requ
 const { setContact, getPhoneNumber } = require('../utils/contactCache');
 const { stripMarkdownFormatting } = require('../utils/stripMarkdown');
 const { PLATFORM_WHATSAPP } = require('../utils/humanHandoff');
+const { getQuickActionsText, isQuickActionResponse, formatProductDisplayName } = require('./quickReplyButtons');
+const { getContext } = require('../services/contextManager');
 
 // Helper function to decode WhatsApp LID to actual phone number
 function decodeLIDtoPhone(lid) {
@@ -226,6 +228,57 @@ function initWhatsAppBot() {
         }
 
         const lowerMsg = msgBody.toLowerCase();
+
+        // ========================================
+        // QUICK ACTION RESPONSE HANDLING (1, 2, 3)
+        // ========================================
+
+        const quickAction = isQuickActionResponse(msgBody);
+        if (quickAction) {
+            // Check context manager for last mentioned product (not route.params)
+            const ctx = getContext(userId);
+            const lastProduct = ctx?.lastMentionedProduct || ctx?.lastPriceProduct || null;
+
+            if (lastProduct) {
+                console.log(`[BOT] Quick action detected: ${quickAction} for product: ${lastProduct}`);
+
+                // Route the quick action to appropriate handler
+                if (quickAction === 'price') {
+                    await handlePriceQuery(
+                        msg,
+                        lastProduct,
+                        null, // let it auto-detect currency
+                        getPhoneNumber(userId),
+                        process.env.DEEPSEEK_API_KEY,
+                        msgBody
+                    );
+                    return;
+                } else if (quickAction === 'buyOnline' || quickAction === 'retailStore') {
+                    // Treat both as store/marketplace query with product name
+                    // Use formatProductDisplayName to get the same display name as shown in Quick Actions menu
+                    const productDisplay = formatProductDisplayName(lastProduct);
+
+                    const response = await generateResponse(
+                        quickAction === 'buyOnline'
+                            ? `I want to buy ${productDisplay} from online store.`
+                            : `I want to buy ${productDisplay} from a retail store.`,
+                        '',
+                        process.env.DEEPSEEK_API_KEY,
+                        [],
+                        { lastProductMentioned: lastProduct }
+                    );
+                    await sendLongMessage(msg, response.text, process.env.DEEPSEEK_API_KEY);
+                    addMessage(userId, "user", msgBody);
+                    addMessage(userId, "assistant", response.text);
+                    return;
+                }
+            } else {
+                // No product context - ask user which product
+                console.log(`[BOT] Quick action but no product context found`);
+                await msg.reply('Which product would you like to inquire about?');
+                return;
+            }
+        }
 
         // ========================================
         // SPECIAL COMMANDS
@@ -610,13 +663,14 @@ function initWhatsAppBot() {
             // Default: General LLM response
             console.log(`[BOT] Routing to deepseek (general response)`);
 
-            // history already declared above (line 428)
+            // Pass detected product from LLM router (more reliable than text matching)
             const response = await generateResponse(
                 msgBody,
                 '',
                 process.env.DEEPSEEK_API_KEY,
                 history,
-                route.params
+                route.params,
+                route.params.productName  // Pass detected product slug for reliable image/quick-actions
             );
 
             const finalReply = response.text || 'I\'m having trouble responding. Please try again or contact support.';
@@ -638,6 +692,16 @@ function initWhatsAppBot() {
                     markProductAsShown(userId, productName);
                 } catch (err) {
                     console.error('[BOT] Failed to send product image:', err.message);
+                }
+            }
+
+            // Send quick action menu (text-based for WhatsApp) if product was mentioned
+            if (productName) {
+                try {
+                    const menuResult = await getQuickActionsText(msgBody, process.env.DEEPSEEK_API_KEY, productName);
+                    await sendLongMessage(msg, menuResult.text, process.env.DEEPSEEK_API_KEY, 500);
+                } catch (err) {
+                    console.error('[BOT] Failed to send quick action menu:', err.message);
                 }
             }
 
