@@ -166,6 +166,29 @@ function findLastProductName(text, productNames) {
     return lastProduct;
 }
 
+// Find first product mentioned in text (for scanning response text)
+function findFirstProductName(text, productNames) {
+    let firstProduct = null;
+    let firstIndex = text.length + 1; // Start with a large index
+    const lowerText = text.toLowerCase();
+
+    for (const name of productNames) {
+        const lowerName = name.toLowerCase();
+        let index = lowerText.indexOf(lowerName);
+        if (index === -1) {
+            const shortName = lowerName.replace(' capsule', '').replace(' plus', '').trim();
+            if (shortName !== lowerName) {
+                index = lowerText.indexOf(shortName);
+            }
+        }
+        if (index !== -1 && index < firstIndex) {
+            firstIndex = index;
+            firstProduct = name;
+        }
+    }
+    return firstProduct;
+}
+
 /**
  * Find KB product key by slug (reverse lookup)
  * Converts "riflex-360" → "RiFlex 360 Capsule"
@@ -488,6 +511,16 @@ async function generateResponse(userMessage, _, apiKey, history = [], routeParam
     ];
 
     let reply = await callDeepSeekWithRetry(messages, apiKey);
+
+    // 3. If no product detected from message, scan the reply text for product mentions
+    // This handles cases like "Blood pressure supplement" → LLM recommends BioNatto Plus
+    if (!imageProduct && reply) {
+        const firstProductInResponse = findFirstProductName(reply, productNames);
+        if (firstProductInResponse) {
+            imageProduct = firstProductInResponse;
+            console.log(`[DEEPSEEK] Product from response text: ${imageProduct}`);
+        }
+    }
 
     // Check if AI is uncertain
     const unknownPhrases = ["don't have that information", "not in the knowledge base", "i don't know", "can't answer", "cannot answer", "not sure", "unclear"];

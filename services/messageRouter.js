@@ -500,6 +500,17 @@ async function routeMessage(userMessage, userId, phoneNumber, apiKey, history = 
     // Analyze intent with LLM (now including history)
     const intent = await analyzeIntent(userMessage, userId, phoneNumber, apiKey, history);
 
+    // FOR PRICE INTENTS: If user didn't explicitly mention product in current message, use context
+    // This handles follow-up "Price" queries - LLM sometimes picks wrong product from history
+    if (intent.intent === 'price' && ctx?.lastMentionedProduct) {
+        const currentMsgHasProduct = extractProductFromText(userMessage);
+        if (!currentMsgHasProduct) {
+            // User just said "Price" without naming a product - use last discussed product from context
+            intent.product = ctx.lastMentionedProduct;
+            console.log(`[ROUTER] Using context product for price follow-up: ${intent.product}`);
+        }
+    }
+
     // Determine default currency from phone if not specified
     if (!intent.currency && phoneNumber) {
         intent.currency = getCurrencyFromPhone(phoneNumber);
@@ -607,17 +618,14 @@ async function routeMessage(userMessage, userId, phoneNumber, apiKey, history = 
         };
     }
 
-    // General query - track mentioned product for future follow-ups
-    const mentionedProduct = extractProductFromText(userMessage) || findProductInHistory(history);
-    if (mentionedProduct) {
-        updateMentionedProduct(userId, mentionedProduct);
-        console.log(`[ROUTER] Tracked mentioned product: ${mentionedProduct}`);
-    }
+    // Determine product for context - use LLM-detected product first, then text extraction, then history
+    const mentionedProduct = intent.product || extractProductFromText(userMessage) || findProductInHistory(history);
 
     return {
         handler: 'deepseek',
         params: {
-            productName: mentionedProduct || null
+            productName: mentionedProduct || null,  // For DeepSeek context (can include history)
+            intentProduct: intent.product || null    // LLM-detected product only (no history fallback)
         }
     };
 }
