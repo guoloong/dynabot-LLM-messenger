@@ -7,6 +7,7 @@ const { generateResponse } = require('../services/deepseek');
 const { routeMessage } = require('../services/messageRouter');
 const { getPriceResponse } = require('../services/priceApi');
 const { getStoreResponse } = require('../services/storeLocator');
+const { updateMentionedProduct } = require('../services/contextManager');
 const { getHistory, addMessage } = require('../utils/memory');
 const { splitIntoChunks } = require('../utils/llmMessageSplitter');
 const { stripMarkdownFormatting } = require('../utils/stripMarkdown');
@@ -410,19 +411,29 @@ class MessengerBot {
             // Default: Generate DeepSeek response
             console.log(`[MESSENGER] Routing to DeepSeek (general response)`);
 
-            // Pass detected product from LLM router (more reliable than text matching)
+            // For image/buttons: use LLM-detected product (intent.product) only if explicitly detected
+            // If null, don't use history-based product for image/buttons - let generateResponse determine from message
+            const detectedProductForMedia = route.params.intentProduct || null;
+
             const response = await generateResponse(
                 messageText,
                 '',
                 process.env.DEEPSEEK_API_KEY,
                 history,
                 route.params,
-                route.params.productName  // Pass detected product slug for reliable image/quick-actions
+                detectedProductForMedia  // Use only LLM-detected product, not history fallback
             );
 
             const finalReply = response.text || "I'm having trouble responding. Please try again.";
             const imageUrl = response.imageUrl;
             const productName = response.productName;
+
+            // Update context AFTER response - use the actual product the LLM discussed
+            // This ensures context reflects what the bot actually recommended, not what was detected beforehand
+            if (productName) {
+                updateMentionedProduct(senderPsid, productName);
+                console.log(`[MESSENGER] Context updated to: ${productName}`);
+            }
 
             // Send response
             await this.sendLongMessage(senderPsid, finalReply);

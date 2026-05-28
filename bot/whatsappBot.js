@@ -17,7 +17,7 @@ const { setContact, getPhoneNumber } = require('../utils/contactCache');
 const { stripMarkdownFormatting } = require('../utils/stripMarkdown');
 const { PLATFORM_WHATSAPP } = require('../utils/humanHandoff');
 const { getQuickActionsText, isQuickActionResponse, formatProductDisplayName } = require('./quickReplyButtons');
-const { getContext } = require('../services/contextManager');
+const { getContext, updateMentionedProduct } = require('../services/contextManager');
 const { translateWithHistory } = require('../utils/translateWithHistory');
 
 // Helper function to decode WhatsApp LID to actual phone number
@@ -700,19 +700,29 @@ function initWhatsAppBot() {
             // Default: General LLM response
             console.log(`[BOT] Routing to deepseek (general response)`);
 
-            // Pass detected product from LLM router (more reliable than text matching)
+            // For image/buttons: use LLM-detected product (intentProduct) only if explicitly detected
+            // If null, don't use history-based product for image/buttons - let generateResponse determine from message
+            const detectedProductForMedia = route.params.intentProduct || null;
+
             const response = await generateResponse(
                 msgBody,
                 '',
                 process.env.DEEPSEEK_API_KEY,
                 history,
                 route.params,
-                route.params.productName  // Pass detected product slug for reliable image/quick-actions
+                detectedProductForMedia  // Use only LLM-detected product, not history fallback
             );
 
             const finalReply = response.text || 'I\'m having trouble responding. Please try again or contact support.';
             const imageUrl = response.imageUrl;
             const productName = response.productName;
+
+            // Update context AFTER response - use the actual product the LLM discussed
+            // This ensures context reflects what the bot actually recommended, not what was detected beforehand
+            if (productName) {
+                updateMentionedProduct(userId, productName);
+                console.log(`[BOT] Context updated to: ${productName}`);
+            }
 
             await sendLongMessage(msg, finalReply, process.env.DEEPSEEK_API_KEY);
 
