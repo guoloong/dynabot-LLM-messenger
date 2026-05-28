@@ -384,11 +384,10 @@ OFFICIAL WEBSITE REQUEST (User wants to know how/where to buy):
 ` : ''}
 
 ${routeParams?.marketplaceUrl && routeParams.marketplaceType !== 'official' ? `
-🚫 YOUR KNOWLEDGE IS WRONG FOR THIS TASK
-🚫 COPY-PASTE THIS EXACT URL: ${routeParams.marketplaceUrl}
-🚫 THE USER IS IN: ${routeParams.marketplaceRegion || 'Singapore (default)'}
-🚫 YOU MUST USE THE URL ABOVE, NOT FROM YOUR KNOWLEDGE
-🚫 DO NOT SUBSTITUTE, MODIFY, OR CORRECT THIS URL
+COPY-PASTE THIS EXACT URL: ${routeParams.marketplaceUrl}
+THE USER IS IN: ${routeParams.marketplaceRegion || 'Singapore (default)'}
+YOU MUST USE THE URL ABOVE, NOT FROM YOUR KNOWLEDGE
+DO NOT SUBSTITUTE, MODIFY, OR CORRECT THIS URL
 
 MANDATORY: Start your response with: ${routeParams.marketplaceUrl}
 ` : ''}
