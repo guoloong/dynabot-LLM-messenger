@@ -8,6 +8,7 @@ const qrcode = require('qrcode-terminal');
 const {
     generateResponse
 } = require('../services/deepseek');
+const { analyzeImage } = require('../services/imageAnalyzer');
 const { routeMessage } = require('../services/messageRouter');
 const { getPriceResponse } = require('../services/priceApi');
 const { getStoreResponse } = require('../services/storeLocator');
@@ -228,7 +229,58 @@ function initWhatsAppBot() {
             // Silently ignore
         }
 
-        const lowerMsg = msgBody.toLowerCase();
+        // ========================================
+        // IMAGE MESSAGE HANDLING
+        // ========================================
+        let imageAnalysisResult = null;
+        let effectiveMessageText = msgBody;
+
+        if (msg.type === 'image') {
+            console.log('[BOT] Image message detected, downloading media...');
+            try {
+                const media = await msg.downloadMedia();
+                if (media && media.data) {
+                    console.log(`[BOT] Media downloaded: mimetype=${media.mimetype}, size=${media.data.length}`);
+
+                    // Analyze image using imageAnalyzer
+                    try {
+                        console.log(`[BOT] Analyzing image with MiniMax Vision API...`);
+                        imageAnalysisResult = await analyzeImage(media);
+                        console.log(`[BOT] Image analysis complete`);
+                        console.log(`[BOT] Description: ${imageAnalysisResult.description.substring(0, 100)}...`);
+
+                        // Use image context - prepend to message if there's text, or use as message if no text
+                        const imageContext = `\n[User sent a photo]\nImage description: ${imageAnalysisResult.description}\n`;
+                        if (msgBody && msgBody.trim()) {
+                            // User sent image with a message - prepend image context
+                            effectiveMessageText = imageContext + msgBody;
+                        } else {
+                            // User sent only an image - use image context as the message
+                            effectiveMessageText = imageContext;
+                        }
+                    } catch (err) {
+                        console.error('[BOT] Image analysis failed:', err.message);
+                        // Continue without image analysis
+                        imageAnalysisResult = null;
+                    }
+                }
+            } catch (err) {
+                console.error('[BOT] Failed to download image:', err.message);
+            }
+        }
+
+        // If no message body and no image analysis, skip
+        if (!effectiveMessageText && !imageAnalysisResult) {
+            console.log('[BOT] No text or valid image in message, skipping');
+            return;
+        }
+
+        // Use placeholder if no text but has image
+        if (!effectiveMessageText && imageAnalysisResult) {
+            effectiveMessageText = `[User sent an image: ${imageAnalysisResult.description}]`;
+        }
+
+        const lowerMsg = effectiveMessageText.toLowerCase();
 
         // ========================================
         // QUICK ACTION RESPONSE HANDLING (1, 2, 3)
@@ -644,7 +696,7 @@ function initWhatsAppBot() {
         userCooldowns.set(userId, now);
 
         try {
-            if (msgBody.length < 2) return;
+            if (msgBody.length < 2 && effectiveMessageText.length < 2) return;
 
             // Show typing indicator
             try {
@@ -664,7 +716,7 @@ function initWhatsAppBot() {
             // NEW: LLM-based Routing (with history for context)
             // ========================================
             console.log(`[BOT] Routing message with LLM (history: ${history.length} messages)...`);
-            const route = await routeMessage(msgBody, userId, phoneNumber, process.env.DEEPSEEK_API_KEY, history);
+            const route = await routeMessage(effectiveMessageText, userId, phoneNumber, process.env.DEEPSEEK_API_KEY, history);
             console.log(`[BOT] Routed to: ${route.handler}`, route.params);
 
             // Clear typing indicator
@@ -683,16 +735,16 @@ function initWhatsAppBot() {
                     route.params.currency,
                     route.params.phoneNumber || phoneNumber,
                     process.env.DEEPSEEK_API_KEY,
-                    msgBody
+                    effectiveMessageText
                 );
-                addMessage(userId, "user", msgBody);
+                addMessage(userId, "user", effectiveMessageText);
                 addMessage(userId, "assistant", "[Price Query]");
                 return;
             }
 
             if (route.handler === 'storeLocator') {
-                await handleStoreQuery(msg, msgBody, process.env.DEEPSEEK_API_KEY, route.params, msgBody);
-                addMessage(userId, "user", msgBody);
+                await handleStoreQuery(msg, effectiveMessageText, process.env.DEEPSEEK_API_KEY, route.params, effectiveMessageText);
+                addMessage(userId, "user", effectiveMessageText);
                 addMessage(userId, "assistant", "[Store Query]");
                 return;
             }
@@ -705,16 +757,17 @@ function initWhatsAppBot() {
             const detectedProductForMedia = route.params.intentProduct || null;
 
             const response = await generateResponse(
-                msgBody,
+                effectiveMessageText,
                 '',
                 process.env.DEEPSEEK_API_KEY,
                 history,
                 route.params,
-                detectedProductForMedia  // Use only LLM-detected product, not history fallback
+                detectedProductForMedia,  // Use only LLM-detected product, not history fallback
+                imageAnalysisResult       // Pass image analysis result (NEW PARAMETER)
             );
 
             const finalReply = response.text || 'I\'m having trouble responding. Please try again or contact support.';
-            const imageUrl = response.imageUrl;
+            const responseImageUrl = response.imageUrl;
             const productName = response.productName;
 
             // Update context AFTER response - use the actual product the LLM discussed
@@ -728,13 +781,13 @@ function initWhatsAppBot() {
 
             // Send product image if applicable
             const imageKeywords = ['image', 'photo', 'picture', 'show', 'send image', 'send photo'];
-            const isImageRequest = imageKeywords.some(k => msgBody.toLowerCase().includes(k));
-            const shouldSendImage = imageUrl && (isImageRequest || !hasProductBeenShown(userId, productName));
+            const isImageRequest = imageKeywords.some(k => effectiveMessageText.toLowerCase().includes(k));
+            const shouldSendImage = responseImageUrl && (isImageRequest || !hasProductBeenShown(userId, productName));
 
             if (shouldSendImage) {
                 console.log(`[BOT] Sending product image for "${productName}"`);
                 try {
-                    const media = await MessageMedia.fromUrl(imageUrl, { unsafeMimeType: true });
+                    const media = await MessageMedia.fromUrl(responseImageUrl, { unsafeMimeType: true });
                     await msg.reply(media, msg.chatId, { caption: `Here's the image of ${productName}` });
                     markProductAsShown(userId, productName);
                 } catch (err) {
@@ -745,14 +798,14 @@ function initWhatsAppBot() {
             // Send quick action menu (text-based for WhatsApp) if product was mentioned
             if (productName) {
                 try {
-                    const menuResult = await getQuickActionsText(msgBody, process.env.DEEPSEEK_API_KEY, productName);
+                    const menuResult = await getQuickActionsText(effectiveMessageText, process.env.DEEPSEEK_API_KEY, productName);
                     await sendLongMessage(msg, menuResult.text, process.env.DEEPSEEK_API_KEY, 500);
                 } catch (err) {
                     console.error('[BOT] Failed to send quick action menu:', err.message);
                 }
             }
 
-            addMessage(userId, "user", msgBody);
+            addMessage(userId, "user", effectiveMessageText);
             addMessage(userId, "assistant", finalReply);
 
         } catch (err) {

@@ -4,6 +4,7 @@
 const express = require('express');
 const axios = require('axios');
 const { generateResponse } = require('../services/deepseek');
+const { analyzeImage } = require('../services/imageAnalyzer');
 const { routeMessage } = require('../services/messageRouter');
 const { getPriceResponse } = require('../services/priceApi');
 const { getStoreResponse } = require('../services/storeLocator');
@@ -136,12 +137,58 @@ class MessengerBot {
         // Get message text
         const messageText = receivedMessage.text ? receivedMessage.text.trim() : null;
 
-        if (!messageText) {
-            console.log('[MESSENGER] No text in message, skipping');
+        // Check for image attachments
+        const attachments = receivedMessage.attachments;
+        let imageUrl = null;
+        let imageAnalysisResult = null;
+
+        if (attachments && attachments.length > 0) {
+            const imageAttachment = attachments.find(a => a.type === 'image');
+            if (imageAttachment) {
+                imageUrl = imageAttachment.payload?.url || imageAttachment.url;
+                console.log(`[MESSENGER] Image attachment detected: ${imageUrl}`);
+
+                // Analyze image using imageAnalyzer
+                if (imageUrl) {
+                    try {
+                        console.log(`[MESSENGER] Analyzing image with MiniMax Vision API...`);
+                        imageAnalysisResult = await analyzeImage(imageUrl);
+                        console.log(`[MESSENGER] Image analysis complete`);
+                        console.log(`[MESSENGER] Description: ${imageAnalysisResult.description.substring(0, 100)}...`);
+                    } catch (err) {
+                        console.error('[MESSENGER] Image analysis failed:', err.message);
+                        // Continue without image analysis - will be treated as text-only message
+                        imageAnalysisResult = null;
+                    }
+                }
+            }
+        }
+
+        // If no text AND no valid image, skip
+        if (!messageText && !imageAnalysisResult) {
+            console.log('[MESSENGER] No text or valid image in message, skipping');
             return;
         }
 
-        console.log(`[MESSENGER] Message from ${senderPsid}: "${messageText}"`);
+        // Build effective message with image context
+        let effectiveMessageText = messageText;
+        if (imageAnalysisResult) {
+            const imageContext = `\n[User sent a photo]\nImage description: ${imageAnalysisResult.description}\n`;
+            if (messageText && messageText.trim()) {
+                // User sent image with a message - prepend image context
+                effectiveMessageText = imageContext + messageText;
+            } else {
+                // User sent only an image - use image context as the message
+                effectiveMessageText = imageContext;
+            }
+        }
+
+        if (!effectiveMessageText) {
+            console.log('[MESSENGER] No text content to process');
+            return;
+        }
+
+        console.log(`[MESSENGER] Message from ${senderPsid}: "${effectiveMessageText}"`);
 
         // Apply cooldown
         const now = Date.now();
@@ -166,7 +213,7 @@ class MessengerBot {
         // ========================================
         // ADMIN COMMANDS (processed before human handoff)
         // ========================================
-        const lowerMsg = messageText.toLowerCase();
+        const lowerMsg = effectiveMessageText.toLowerCase();
 
         // !status - List active sessions (all platforms, like WhatsApp)
         if (lowerMsg === '!status') {
@@ -394,17 +441,17 @@ class MessengerBot {
 
             // Route message to appropriate handler
             console.log(`[MESSENGER] Routing message with history: ${history.length} messages`);
-            const route = await routeMessage(messageText, senderPsid, null, process.env.DEEPSEEK_API_KEY, history);
+            const route = await routeMessage(effectiveMessageText, senderPsid, null, process.env.DEEPSEEK_API_KEY, history);
             console.log(`[MESSENGER] Routed to: ${route.handler}`, route.params);
 
             // Handle based on route
             if (route.handler === 'priceApi') {
-                await this.handlePriceQuery(senderPsid, route.params.productName, route.params.currency, messageText);
+                await this.handlePriceQuery(senderPsid, route.params.productName, route.params.currency, effectiveMessageText);
                 return;
             }
 
             if (route.handler === 'storeLocator') {
-                await this.handleStoreQuery(senderPsid, messageText, route.params, messageText);
+                await this.handleStoreQuery(senderPsid, effectiveMessageText, route.params, effectiveMessageText);
                 return;
             }
 
@@ -416,16 +463,17 @@ class MessengerBot {
             const detectedProductForMedia = route.params.intentProduct || null;
 
             const response = await generateResponse(
-                messageText,
+                effectiveMessageText,
                 '',
                 process.env.DEEPSEEK_API_KEY,
                 history,
                 route.params,
-                detectedProductForMedia  // Use only LLM-detected product, not history fallback
+                detectedProductForMedia,  // Use only LLM-detected product, not history fallback
+                imageAnalysisResult      // Pass image analysis result (NEW PARAMETER)
             );
 
             const finalReply = response.text || "I'm having trouble responding. Please try again.";
-            const imageUrl = response.imageUrl;
+            const responseImageUrl = response.imageUrl;
             const productName = response.productName;
 
             // Update context AFTER response - use the actual product the LLM discussed
@@ -439,9 +487,9 @@ class MessengerBot {
             await this.sendLongMessage(senderPsid, finalReply);
 
             // Send product image if applicable
-            if (imageUrl && productName) {
+            if (responseImageUrl && productName) {
                 try {
-                    await this.sendImageUrl(senderPsid, imageUrl, productName);
+                    await this.sendImageUrl(senderPsid, responseImageUrl, productName);
                 } catch (err) {
                     console.error('[MESSENGER] Failed to send product image:', err.message);
                 }
@@ -450,14 +498,14 @@ class MessengerBot {
             // Send quick action buttons if product was mentioned
             if (productName) {
                 try {
-                    await this.sendQuickReplyButtons(senderPsid, messageText, productName);
+                    await this.sendQuickReplyButtons(senderPsid, effectiveMessageText, productName);
                 } catch (err) {
                     console.error('[MESSENGER] Failed to send quick reply buttons:', err.message);
                 }
             }
 
             // Save to history
-            addMessage(senderPsid, 'user', messageText);
+            addMessage(senderPsid, 'user', effectiveMessageText);
             addMessage(senderPsid, 'assistant', finalReply);
 
         } catch (err) {
