@@ -472,13 +472,57 @@ async function callDeepSeekWithRetry(messages, apiKey, maxRetries = 3) {
     return null;
 }
 
+/**
+ * Build LLM context from image analysis result
+ * Converts image analysis to a structured context string for the LLM
+ */
+function buildImageContextForLLM(imageAnalysisResult) {
+    if (!imageAnalysisResult) return '';
+
+    const { description, type, detectedItems, provider } = imageAnalysisResult;
+
+    let context = '\n[USER SENT AN IMAGE]\n';
+    context += `Image Type: ${type || 'unknown'}\n`;
+
+    if (description) {
+        context += `Image Description: ${description}\n`;
+    }
+
+    if (detectedItems && detectedItems.length > 0) {
+        // Group items by type
+        const products = detectedItems.filter(i => i.type === 'product');
+        const prices = detectedItems.filter(i => i.type === 'price');
+        const platforms = detectedItems.filter(i => i.type === 'platform');
+        const orderNumbers = detectedItems.filter(i => i.type === 'order_number');
+
+        if (products.length > 0) {
+            context += `Products shown: ${products.map(p => p.value).join(', ')}\n`;
+        }
+        if (prices.length > 0) {
+            context += `Prices visible: ${prices.map(p => p.value).join(', ')}\n`;
+        }
+        if (platforms.length > 0) {
+            context += `E-commerce platforms: ${platforms.map(p => p.value).join(', ')}\n`;
+        }
+        if (orderNumbers.length > 0) {
+            context += `Order numbers: ${orderNumbers.map(o => o.value).join(', ')}\n`;
+        }
+    }
+
+    context += '[/USER SENT AN IMAGE]\n';
+
+    return context;
+}
+
 // Main response generator
 // detectedProductSlug: Optional product slug from route params (e.g., "riflex-360")
-async function generateResponse(userMessage, _, apiKey, history = [], routeParams = {}, detectedProductSlug = null) {
+// imageAnalysisResult: Optional result from imageAnalyzer.js (NEW PARAMETER)
+async function generateResponse(userMessage, _, apiKey, history = [], routeParams = {}, detectedProductSlug = null, imageAnalysisResult = null) {
     console.log(`\n[DEEPSEEK] NEW QUERY: "${userMessage}"`);
     console.log(`[DEEPSEEK] History length: ${history.length} messages`);
     console.log(`[DEEPSEEK] Route params:`, JSON.stringify(routeParams));
     console.log(`[DEEPSEEK] Detected product slug: ${detectedProductSlug}`);
+    console.log(`[DEEPSEEK] Image analysis: ${imageAnalysisResult ? 'provided (' + imageAnalysisResult.type + ')' : 'none'}`);
 
     const kb = getKnowledge();
     const productNames = Object.keys(kb.products);
@@ -498,16 +542,41 @@ async function generateResponse(userMessage, _, apiKey, history = [], routeParam
         imageProduct = productsInMsg.length > 0 ? findLastProductName(userMessage, productNames) : null;
     }
 
+    // 3. Try to detect from image analysis result
+    if (!imageProduct && imageAnalysisResult && imageAnalysisResult.detectedItems) {
+        const productItems = imageAnalysisResult.detectedItems.filter(i => i.type === 'product');
+        if (productItems.length > 0) {
+            // Try to match detected items to known products
+            for (const item of productItems) {
+                const matched = findKBKeyBySlug(item.value, productNames);
+                if (matched) {
+                    imageProduct = matched;
+                    console.log(`[DEEPSEEK] Product from image analysis: ${imageProduct}`);
+                    break;
+                }
+            }
+        }
+    }
+
     const imageUrl = imageProduct ? getProductImageUrl(kb, imageProduct) : null;
 
     // Build knowledge prompt with route params
     let detectedProductForBrochure = imageProduct;
 
     const kbPrompt = buildKnowledgePrompt(detectedProductForBrochure, routeParams);
+
+    // Build user message with image context if available
+    let finalUserMessage = userMessage;
+    if (imageAnalysisResult) {
+        const imageContext = buildImageContextForLLM(imageAnalysisResult);
+        finalUserMessage = imageContext + '\n\n' + userMessage;
+        console.log(`[DEEPSEEK] Image context added (${imageAnalysisResult.type})`);
+    }
+
     const messages = [
         { role: "system", content: kbPrompt },
         ...history.slice(-6),
-        { role: "user", content: userMessage }
+        { role: "user", content: finalUserMessage }
     ];
 
     let reply = await callDeepSeekWithRetry(messages, apiKey);
@@ -576,11 +645,21 @@ async function generateResponse(userMessage, _, apiKey, history = [], routeParam
         }
 
         console.log(`[DEEPSEEK] [TIER 4] All tiers failed, returning fallback message`);
-        return { text: "I'm sorry, I couldn't find an answer. A human representative will be happy to help you.", imageUrl: null, productName: null };
+        return {
+            text: "I'm sorry, I couldn't find an answer. A human representative will be happy to help you.",
+            imageUrl: null,
+            productName: imageProduct,
+            imageAnalysis: imageAnalysisResult
+        };
     }
 
     console.log(`[DEEPSEEK] [TIER 1 SUCCESS] Direct response from knowledge base`);
-    return { text: reply || "I'm having trouble responding right now.", imageUrl, productName: imageProduct };
+    return {
+        text: reply || "I'm having trouble responding right now.",
+        imageUrl,
+        productName: imageProduct,
+        imageAnalysis: imageAnalysisResult
+    };
 }
 
 module.exports = { generateResponse };
