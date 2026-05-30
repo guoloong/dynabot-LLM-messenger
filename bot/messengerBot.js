@@ -706,7 +706,7 @@ class MessengerBot {
             // Handle specific postbacks
             if (payload === 'GET_STARTED') {
                 await this.sendMessage(senderPsid,
-                    "Hello! I'm DynaBot, your AI assistant for Dynamic Nutrition. How can I help you today?\n\n" +
+                    "Hello! I'm Sandra, your AI assistant for Dynamic Nutrition. How can I help you today?\n\n" +
                     "You can ask me about:\n" +
                     "- Product prices\n" +
                     "- Store locations\n" +
