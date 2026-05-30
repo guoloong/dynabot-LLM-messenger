@@ -1,11 +1,15 @@
 // services/deepseek.js
 // General LLM response generation using DeepSeek
 // Handles knowledge base queries, web search, and general conversation
+// Refactored to use LLM provider factory for easy LLM switching
 
 const axios = require('axios');
 const { getKnowledge } = require('./knowledgeLoader');
 const { getSupplementaryInfo } = require('../utils/brochures');
 const { searchWebsite, fetchProductPageAndLinks } = require('../config/botConfig');
+
+// Import LLM provider factory
+const { getLLMProvider, extractKeywords, searchInternet: llmSearchInternet } = require('./llm');
 
 // Product slug normalization helper
 const PRODUCT_SLUG_MAP = {
@@ -41,39 +45,16 @@ function getProductSlug(productName) {
         .replace(/[^a-z0-9\-]/g, '');
 }
 
-// Extract keywords using LLM
+// Extract keywords using LLM (delegated to LLM provider factory)
 async function extractKeywordsWithDeepSeek(userMessage, apiKey) {
     console.log(`[DEEPSEEK] Extracting keywords from: "${userMessage}"`);
     if (!apiKey) {
         return userMessage;
     }
 
-    const prompt = `Extract the most important keywords from this user message for a web search.
-Return ONLY the keywords separated by spaces, no punctuation, no extra text.
-Focus on product names, ingredients, health terms, key concepts.
-
-User message: "${userMessage}"
-Keywords:`;
-
     try {
-        const response = await axios.post(
-            'https://api.deepseek.com/v1/chat/completions',
-            {
-                model: 'deepseek-chat',
-                messages: [
-                    { role: 'system', content: 'You are a keyword extraction tool. Respond only with the keywords.' },
-                    { role: 'user', content: prompt }
-                ],
-                temperature: 0,
-                max_tokens: 50
-            },
-            {
-                headers: { 'Authorization': `Bearer ${apiKey}` },
-                timeout: 10000
-            }
-        );
-
-        const keywords = response.data.choices[0].message.content.trim();
+        // Use LLM provider factory
+        const keywords = await extractKeywords(userMessage);
         if (!keywords || keywords.split(/\s+/).length === 0 || keywords.length < 3) {
             return userMessage;
         }
@@ -107,20 +88,13 @@ async function httpGetWithRetry(url, options = {}, maxRetries = 3) {
     throw lastError;
 }
 
-// DuckDuckGo API search
+// DuckDuckGo API search (delegated to LLM provider factory)
 async function searchInternet(query) {
     console.log(`[DEEPSEEK] Internet search: "${query}"`);
     try {
-        const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
-        const { data } = await httpGetWithRetry(url);
-        let text = data.AbstractText || '';
-        if (data.RelatedTopics) {
-            const firstTopics = data.RelatedTopics.slice(0, 3)
-                .map(t => t.Text || '')
-                .join(' ');
-            text = (text + ' ' + firstTopics).trim();
-        }
-        return text.length > 50 ? text : null;
+        // Use LLM provider factory
+        const results = await llmSearchInternet(query);
+        return results;
     } catch (err) {
         console.error('[DEEPSEEK] Internet search error:', err.message);
         return null;
@@ -439,13 +413,12 @@ async function callDeepSeek(messages, apiKey) {
         return null;
     }
     try {
-        const response = await axios.post('https://api.deepseek.com/v1/chat/completions', {
-            model: "deepseek-chat",
-            messages,
+        // Use LLM provider factory for chat
+        const llm = getLLMProvider();
+        const content = await llm.chat(messages, {
             temperature: 0.2,
             max_tokens: 500
-        }, { headers: { 'Authorization': `Bearer ${apiKey}` }, timeout: 20000 });
-        const content = response.data.choices[0].message.content;
+        });
         return content;
     } catch (err) {
         console.error('[DEEPSEEK] API error:', err.message);
