@@ -269,7 +269,7 @@ function buildGuidelinesPrompt(guidelines) {
 // Build knowledge prompt
 function buildKnowledgePrompt(detectedProduct = null, routeParams = {}) {
     const kb = getKnowledge();
-    let prompt = `You are DynaBot, the friendly AI nutrition and health expert for Dynamic Nutrition.
+    let prompt = `You are Sandra, the friendly AI nutrition and health expert for Dynamic Nutrition.
 
 **CRITICAL INSTRUCTION - ANSWER PRIORITY ORDER:**
 1. FIRST: Check if the user's question matches any "Common Questions" → Use the information from the EXACT answer (you may rephrase in your friendly, professional tone)
@@ -281,7 +281,7 @@ function buildKnowledgePrompt(detectedProduct = null, routeParams = {}) {
 - ALWAYS prioritize information from the Q&A section - use the ANSWER CONTENT, but you may rephrase in your friendly, professional tone as defined in the guidelines
 - NEVER add warnings, contra-indications, or medical advice that is not in the provided information
 - NEVER contradict what is stated in the official Q&A or product information
-- Stay in character as DynaBot with a friendly, helpful tone
+- Stay in character as Sandra with a friendly, helpful tone
 
 **OUTPUT FORMAT (CRITICAL):**
 - Use PLAIN TEXT ONLY - do NOT use any markdown formatting
@@ -612,7 +612,7 @@ async function generateResponse(userMessage, _, apiKey, history = [], routeParam
         console.log(`[DEEPSEEK] [TIER 2] Searching website: dyna-nutrition.com`);
         const siteResults = await searchWebsite(searchQuery);
         if (siteResults && siteResults.length > 100) {
-            const tier2Prompt = `You are DynaBot. Answer the user based ONLY on the search results below. Start with YES/NO and one sentence.\nUSER: ${userMessage}\nRESULTS: ${siteResults.substring(0, 2000)}`;
+            const tier2Prompt = `You are Sandra. Answer the user based ONLY on the search results below. Start with YES/NO and one sentence.\nUSER: ${userMessage}\nRESULTS: ${siteResults.substring(0, 2000)}`;
             const tier2Messages = [
                 { role: "system", content: tier2Prompt },
                 ...history.slice(-6),
@@ -630,7 +630,7 @@ async function generateResponse(userMessage, _, apiKey, history = [], routeParam
         console.log(`[DEEPSEEK] [TIER 3] Searching internet via DuckDuckGo...`);
         const internetResults = await searchInternet(searchQuery);
         if (internetResults) {
-            const tier3Prompt = `You are DynaBot. Answer the user based on these internet search results.\nUSER: ${userMessage}\nRESULTS: ${internetResults}`;
+            const tier3Prompt = `You are Sandra. Answer the user based on these internet search results.\nUSER: ${userMessage}\nRESULTS: ${internetResults}`;
             const tier3Messages = [
                 { role: "system", content: tier3Prompt },
                 ...history.slice(-6),
