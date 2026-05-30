@@ -21,6 +21,7 @@ const {
 } = require('../utils/humanHandoff');
 const { setFacebookUser, getPsidByFacebookName } = require('../utils/contactCache');
 const { getQuickActions, getQuickReplyButtons, getQuickReplyPrompt, isQuickActionResponse, formatProductDisplayName, CLICK_TEMPLATES } = require('./quickReplyButtons');
+const { MessageQueue, PLATFORM_MESSENGER: QUEUE_PLATFORM_MESSENGER } = require('../utils/messageQueue');
 
 // Get fresh handoff module instance
 function getHandoff() {
@@ -35,10 +36,22 @@ class MessengerBot {
         this.app.use(express.json());
         this.PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
         this.VERIFY_TOKEN = process.env.VERIFY_TOKEN;
+
+        // Message queue for handling rapid messages
+        this.messageQueue = new MessageQueue({
+            combineWindowMs: 2000,
+            maxQueueSize: 10,
+            minMessageLength: 1
+        });
+
+        // Legacy cooldown tracking (kept for reference during transition)
         this.userCooldowns = new Map();
         this.COOLDOWN_MS = 2000;
 
         this.setupRoutes();
+
+        // Initialize message queue with bot-specific implementations
+        this.initMessageQueue();
 
         // Cleanup expired cooldown entries every 60 seconds
         setInterval(() => {
@@ -50,6 +63,128 @@ class MessengerBot {
                 }
             }
         }, 60000);
+    }
+
+    // Initialize message queue with Messenger-specific implementations
+    initMessageQueue() {
+        const self = this;
+
+        this.messageQueue.sendTypingIndicator = async (userId) => {
+            try {
+                await axios.post(
+                    `https://graph.facebook.com/v21.0/me/messages`,
+                    {
+                        recipient: { id: userId },
+                        sender_action: "typing_on"
+                    },
+                    { params: { access_token: self.PAGE_ACCESS_TOKEN } }
+                );
+            } catch (e) {
+                console.warn('[FB-QUEUE] Typing indicator failed:', e.message);
+            }
+        };
+
+        this.messageQueue.sendMessage = async (userId, text) => {
+            try {
+                await axios.post(
+                    `https://graph.facebook.com/v21.0/me/messages`,
+                    {
+                        recipient: { id: userId },
+                        message: { text: text }
+                    },
+                    {
+                        params: { access_token: self.PAGE_ACCESS_TOKEN },
+                        headers: { 'Content-Type': 'application/json' }
+                    }
+                );
+            } catch (e) {
+                console.error('[FB-QUEUE] Send message failed:', e.message);
+            }
+        };
+
+        this.messageQueue.processMessage = async (userId, combinedMessage, messageCount, platform, imageAnalysisResult) => {
+            await self.processQueuedMessage(userId, combinedMessage, messageCount, imageAnalysisResult);
+        };
+    }
+
+    // Process queued messages - called by messageQueue
+    async processQueuedMessage(senderPsid, combinedMessage, messageCount, imageAnalysisResult) {
+        console.log(`[FB-QUEUE] Processing queued message for ${senderPsid}: "${combinedMessage.substring(0, 50)}..."`);
+
+        try {
+            // Get conversation history for context
+            const history = getHistory(senderPsid);
+
+            // Route message to appropriate handler
+            console.log(`[FB-QUEUE] Routing message with history: ${history.length} messages`);
+            const route = await routeMessage(combinedMessage, senderPsid, null, process.env.DEEPSEEK_API_KEY, history);
+            console.log(`[FB-QUEUE] Routed to: ${route.handler}`, route.params);
+
+            // Handle based on route
+            if (route.handler === 'priceApi') {
+                await this.handlePriceQuery(senderPsid, route.params.productName, route.params.currency, combinedMessage);
+                return;
+            }
+
+            if (route.handler === 'storeLocator') {
+                await this.handleStoreQuery(senderPsid, combinedMessage, route.params, combinedMessage);
+                return;
+            }
+
+            // Default: Generate DeepSeek response
+            console.log(`[FB-QUEUE] Routing to DeepSeek (general response)`);
+
+            const detectedProductForMedia = route.params.intentProduct || null;
+
+            const response = await generateResponse(
+                combinedMessage,
+                '',
+                process.env.DEEPSEEK_API_KEY,
+                history,
+                route.params,
+                detectedProductForMedia,
+                imageAnalysisResult
+            );
+
+            const finalReply = response.text || "I'm having trouble responding. Please try again.";
+            const responseImageUrl = response.imageUrl;
+            const productName = response.productName;
+
+            // Update context
+            if (productName) {
+                updateMentionedProduct(senderPsid, productName);
+                console.log(`[FB-QUEUE] Context updated to: ${productName}`);
+            }
+
+            // Send response
+            await this.sendLongMessage(senderPsid, finalReply);
+
+            // Send product image if applicable
+            if (responseImageUrl && productName) {
+                try {
+                    await this.sendImageUrl(senderPsid, responseImageUrl, productName);
+                } catch (err) {
+                    console.error('[FB-QUEUE] Failed to send product image:', err.message);
+                }
+            }
+
+            // Send quick action buttons if product was mentioned
+            if (productName) {
+                try {
+                    await this.sendQuickReplyButtons(senderPsid, combinedMessage, productName);
+                } catch (err) {
+                    console.error('[FB-QUEUE] Failed to send quick reply buttons:', err.message);
+                }
+            }
+
+            // Save to history
+            addMessage(senderPsid, 'user', combinedMessage);
+            addMessage(senderPsid, 'assistant', finalReply);
+
+        } catch (err) {
+            console.error('[FB-QUEUE] Error handling message:', err);
+            await this.sendMessage(senderPsid, "Something went wrong. Please try again later.");
+        }
     }
 
     setupRoutes() {
@@ -190,28 +325,8 @@ class MessengerBot {
 
         console.log(`[MESSENGER] Message from ${senderPsid}: "${effectiveMessageText}"`);
 
-        // Apply cooldown
-        const now = Date.now();
-        const lastMsgTime = this.userCooldowns.get(senderPsid) || 0;
-        if (now - lastMsgTime < this.COOLDOWN_MS) {
-            console.log(`[MESSENGER] Cooldown active, skipping`);
-            return;
-        }
-        this.userCooldowns.set(senderPsid, now);
-
-        // Cache Facebook user name for future !escalate lookups
-        try {
-            const fbName = await this.fetchFacebookUserName(senderPsid);
-            if (fbName) {
-                setFacebookUser(senderPsid, fbName);
-                console.log(`[MESSENGER] Cached FB user: ${senderPsid} -> ${fbName}`);
-            }
-        } catch (e) {
-            // Silently fail - we don't want to interrupt message handling
-        }
-
         // ========================================
-        // ADMIN COMMANDS (processed before human handoff)
+        // ADMIN COMMANDS - Process IMMEDIATELY (not queued)
         // ========================================
         const lowerMsg = effectiveMessageText.toLowerCase();
 
@@ -391,7 +506,7 @@ class MessengerBot {
         // ========================================
 
         // ========================================
-        // HUMAN HANDOFF INTEGRATION
+        // HUMAN HANDOFF INTEGRATION - Process IMMEDIATELY
         // ========================================
         const handoff = getHandoff();
 
@@ -435,83 +550,25 @@ class MessengerBot {
         // END HUMAN HANDOFF INTEGRATION
         // ========================================
 
+        // ========================================
+        // QUEUE REGULAR MESSAGES - Handle rapid message sending
+        // Replaces cooldown logic - queues messages for sequential processing
+        // ========================================
+
+        // Cache Facebook user name for future !escalate lookups
         try {
-            // Get conversation history for context
-            const history = getHistory(senderPsid);
-
-            // Route message to appropriate handler
-            console.log(`[MESSENGER] Routing message with history: ${history.length} messages`);
-            const route = await routeMessage(effectiveMessageText, senderPsid, null, process.env.DEEPSEEK_API_KEY, history);
-            console.log(`[MESSENGER] Routed to: ${route.handler}`, route.params);
-
-            // Handle based on route
-            if (route.handler === 'priceApi') {
-                await this.handlePriceQuery(senderPsid, route.params.productName, route.params.currency, effectiveMessageText);
-                return;
+            const fbName = await this.fetchFacebookUserName(senderPsid);
+            if (fbName) {
+                setFacebookUser(senderPsid, fbName);
+                console.log(`[MESSENGER] Cached FB user: ${senderPsid} -> ${fbName}`);
             }
-
-            if (route.handler === 'storeLocator') {
-                await this.handleStoreQuery(senderPsid, effectiveMessageText, route.params, effectiveMessageText);
-                return;
-            }
-
-            // Default: Generate DeepSeek response
-            console.log(`[MESSENGER] Routing to DeepSeek (general response)`);
-
-            // For image/buttons: use LLM-detected product (intent.product) only if explicitly detected
-            // If null, don't use history-based product for image/buttons - let generateResponse determine from message
-            const detectedProductForMedia = route.params.intentProduct || null;
-
-            const response = await generateResponse(
-                effectiveMessageText,
-                '',
-                process.env.DEEPSEEK_API_KEY,
-                history,
-                route.params,
-                detectedProductForMedia,  // Use only LLM-detected product, not history fallback
-                imageAnalysisResult      // Pass image analysis result (NEW PARAMETER)
-            );
-
-            const finalReply = response.text || "I'm having trouble responding. Please try again.";
-            const responseImageUrl = response.imageUrl;
-            const productName = response.productName;
-
-            // Update context AFTER response - use the actual product the LLM discussed
-            // This ensures context reflects what the bot actually recommended, not what was detected beforehand
-            if (productName) {
-                updateMentionedProduct(senderPsid, productName);
-                console.log(`[MESSENGER] Context updated to: ${productName}`);
-            }
-
-            // Send response
-            await this.sendLongMessage(senderPsid, finalReply);
-
-            // Send product image if applicable
-            if (responseImageUrl && productName) {
-                try {
-                    await this.sendImageUrl(senderPsid, responseImageUrl, productName);
-                } catch (err) {
-                    console.error('[MESSENGER] Failed to send product image:', err.message);
-                }
-            }
-
-            // Send quick action buttons if product was mentioned
-            if (productName) {
-                try {
-                    await this.sendQuickReplyButtons(senderPsid, effectiveMessageText, productName);
-                } catch (err) {
-                    console.error('[MESSENGER] Failed to send quick reply buttons:', err.message);
-                }
-            }
-
-            // Save to history
-            addMessage(senderPsid, 'user', effectiveMessageText);
-            addMessage(senderPsid, 'assistant', finalReply);
-
-        } catch (err) {
-            console.error('[MESSENGER] Error handling message:', err);
-            await this.sendMessage(senderPsid, "Something went wrong. Please try again later.");
+        } catch (e) {
+            // Silently fail - we don't want to interrupt message handling
         }
+
+        // Queue the message - this handles rapid messages by combining them
+        // and processing sequentially
+        await this.messageQueue.enqueue(senderPsid, effectiveMessageText, QUEUE_PLATFORM_MESSENGER, imageAnalysisResult);
     }
 
     // Handle postback (button clicks)

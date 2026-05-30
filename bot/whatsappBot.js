@@ -20,6 +20,7 @@ const { PLATFORM_WHATSAPP } = require('../utils/humanHandoff');
 const { getQuickActionsText, isQuickActionResponse, formatProductDisplayName } = require('./quickReplyButtons');
 const { getContext, updateMentionedProduct } = require('../services/contextManager');
 const { translateWithHistory } = require('../utils/translateWithHistory');
+const { MessageQueue, PLATFORM_WHATSAPP: QUEUE_PLATFORM_WHATSAPP } = require('../utils/messageQueue');
 
 // Helper function to decode WhatsApp LID to actual phone number
 function decodeLIDtoPhone(lid) {
@@ -71,6 +72,15 @@ async function sendLongMessage(msg, text, apiKey = null, delayMs = 800) {
 let client = null;
 let reconnectAttempts = 0;
 const MAX_RECONNECT = 5;
+
+// Message queue for handling rapid messages
+const messageQueue = new MessageQueue({
+    combineWindowMs: 2000,
+    maxQueueSize: 10,
+    minMessageLength: 1
+});
+
+// Legacy cooldown tracking (kept for reference during transition)
 const userCooldowns = new Map();
 const COOLDOWN_MS = 2000;
 
@@ -121,6 +131,24 @@ setInterval(() => {
         }
     }
 }, 60000);
+
+// Initialize message queue with bot-specific implementations
+messageQueue.sendTypingIndicator = async (userId) => {
+    try {
+        const chat = await client.getChatById(userId);
+        await chat.sendStateTyping();
+    } catch (e) {
+        console.warn('[WA-QUEUE] Typing indicator failed:', e.message);
+    }
+};
+
+messageQueue.sendMessage = async (userId, text) => {
+    try {
+        await client.sendMessage(userId, text);
+    } catch (e) {
+        console.error('[WA-QUEUE] Send message failed:', e.message);
+    }
+};
 
 /**
  * Handle a price query using priceApi with translation
@@ -175,6 +203,176 @@ async function handleStoreQuery(msg, userMessage, apiKey, routeParams, currentMe
         await msg.reply('Sorry, I encountered an error finding stores. Please try again.');
     }
 }
+
+/**
+ * Process a queued message - called by messageQueue when ready to handle queued messages
+ * This extracts the core message processing logic so it can be reused for queued messages
+ */
+async function processQueuedMessage(userId, combinedMessage, messageCount, platform, imageAnalysisResult) {
+    console.log(`[WA-QUEUE] Processing queued message for ${userId}: "${combinedMessage.substring(0, 50)}..."`);
+
+    try {
+        // Get phone number for currency detection
+        const phoneNumber = getPhoneNumber(userId) || decodeLIDtoPhone(userId);
+
+        // Get conversation history for context
+        const history = getHistory(userId);
+
+        // Show typing indicator
+        try {
+            const chat = await client.getChatById(userId);
+            await chat.sendStateTyping();
+        } catch (e) {
+            console.warn('[WA-QUEUE] Typing indicator failed:', e.message);
+        }
+
+        // Route message with LLM
+        console.log(`[WA-QUEUE] Routing message with LLM (history: ${history.length} messages)...`);
+        const route = await routeMessage(combinedMessage, userId, phoneNumber, process.env.DEEPSEEK_API_KEY, history);
+        console.log(`[WA-QUEUE] Routed to: ${route.handler}`, route.params);
+
+        // Clear typing indicator
+        try {
+            const chat = await client.getChatById(userId);
+            await chat.clearState();
+        } catch (e) {
+            // ignore
+        }
+
+        // Handle based on route
+        if (route.handler === 'priceApi') {
+            // Create a mock msg object for handlePriceQuery
+            const mockMsg = {
+                id: { remote: userId },
+                reply: async (text) => {
+                    try {
+                        await client.sendMessage(userId, text);
+                    } catch (e) {
+                        console.error('[WA-QUEUE] Reply failed:', e.message);
+                    }
+                }
+            };
+            await handlePriceQuery(
+                mockMsg,
+                route.params.productName,
+                route.params.currency,
+                route.params.phoneNumber || phoneNumber,
+                process.env.DEEPSEEK_API_KEY,
+                combinedMessage
+            );
+            addMessage(userId, "user", combinedMessage);
+            addMessage(userId, "assistant", "[Price Query]");
+            return;
+        }
+
+        if (route.handler === 'storeLocator') {
+            // Create a mock msg object for handleStoreQuery
+            const mockMsg = {
+                id: { remote: userId },
+                reply: async (text) => {
+                    try {
+                        await client.sendMessage(userId, text);
+                    } catch (e) {
+                        console.error('[WA-QUEUE] Reply failed:', e.message);
+                    }
+                }
+            };
+            await handleStoreQuery(mockMsg, combinedMessage, process.env.DEEPSEEK_API_KEY, route.params, combinedMessage);
+            addMessage(userId, "user", combinedMessage);
+            addMessage(userId, "assistant", "[Store Query]");
+            return;
+        }
+
+        // Default: General LLM response
+        console.log(`[WA-QUEUE] Routing to deepseek (general response)`);
+
+        const detectedProductForMedia = route.params.intentProduct || null;
+
+        const response = await generateResponse(
+            combinedMessage,
+            '',
+            process.env.DEEPSEEK_API_KEY,
+            history,
+            route.params,
+            detectedProductForMedia,
+            imageAnalysisResult
+        );
+
+        const finalReply = response.text || 'I\'m having trouble responding. Please try again or contact support.';
+        const responseImageUrl = response.imageUrl;
+        const productName = response.productName;
+
+        // Update context
+        if (productName) {
+            updateMentionedProduct(userId, productName);
+            console.log(`[WA-QUEUE] Context updated to: ${productName}`);
+        }
+
+        // Send response using sendLongMessage with mock msg
+        const mockMsg = {
+            id: { remote: userId },
+            reply: async (text) => {
+                try {
+                    await client.sendMessage(userId, text);
+                } catch (e) {
+                    console.error('[WA-QUEUE] Reply failed:', e.message);
+                }
+            },
+            chatId: userId
+        };
+        await sendLongMessage(mockMsg, finalReply, process.env.DEEPSEEK_API_KEY);
+
+        // Send product image if applicable
+        const imageKeywords = ['image', 'photo', 'picture', 'show', 'send image', 'send photo'];
+        const isImageRequest = imageKeywords.some(k => combinedMessage.toLowerCase().includes(k));
+        const shouldSendImage = responseImageUrl && (isImageRequest || !hasProductBeenShown(userId, productName));
+
+        if (shouldSendImage && productName) {
+            console.log(`[WA-QUEUE] Sending product image for "${productName}"`);
+            try {
+                const media = await MessageMedia.fromUrl(responseImageUrl, { unsafeMimeType: true });
+                await client.sendMessage(userId, media, { caption: `Here's the image of ${productName}` });
+                markProductAsShown(userId, productName);
+            } catch (err) {
+                console.error('[WA-QUEUE] Failed to send product image:', err.message);
+            }
+        }
+
+        // Send quick action menu if product was mentioned
+        if (productName) {
+            try {
+                const menuResult = await getQuickActionsText(combinedMessage, process.env.DEEPSEEK_API_KEY, productName);
+                const mockMsgForMenu = {
+                    id: { remote: userId },
+                    reply: async (text) => {
+                        try {
+                            await client.sendMessage(userId, text);
+                        } catch (e) {
+                            console.error('[WA-QUEUE] Menu reply failed:', e.message);
+                        }
+                    }
+                };
+                await sendLongMessage(mockMsgForMenu, menuResult.text, process.env.DEEPSEEK_API_KEY, 500);
+            } catch (err) {
+                console.error('[WA-QUEUE] Failed to send quick action menu:', err.message);
+            }
+        }
+
+        addMessage(userId, "user", combinedMessage);
+        addMessage(userId, "assistant", finalReply);
+
+    } catch (err) {
+        console.error('[WA-QUEUE] Message processing error:', err);
+        try {
+            await client.sendMessage(userId, 'Something went wrong. Please try again later.');
+        } catch (e) {
+            console.error('[WA-QUEUE] Error reply failed:', e.message);
+        }
+    }
+}
+
+// Assign the processMessage function to the messageQueue
+messageQueue.processMessage = processQueuedMessage;
 
 function initWhatsAppBot() {
     if (client) { client.destroy().catch(() => {}); }
@@ -690,134 +888,20 @@ function initWhatsAppBot() {
             return;
         }
 
-        const now = Date.now();
-        const lastMsgTime = userCooldowns.get(userId) || 0;
-        if (now - lastMsgTime < COOLDOWN_MS) return;
-        userCooldowns.set(userId, now);
+        // ========================================
+        // QUEUE MESSAGES - Handle rapid message sending
+        // Replaces cooldown logic - queues messages for sequential processing
+        // ========================================
 
-        try {
-            if (msgBody.length < 2 && effectiveMessageText.length < 2) return;
-
-            // Show typing indicator
-            try {
-                const chat = await msg.getChat();
-                await chat.sendStateTyping();
-            } catch (e) {
-                console.warn('[BOT] Could not send typing indicator:', e.message);
-            }
-
-            // Get phone number for currency detection
-            const phoneNumber = getPhoneNumber(userId) || decodeLIDtoPhone(userId);
-
-            // Get conversation history for context
-            const history = getHistory(userId);
-
-            // ========================================
-            // NEW: LLM-based Routing (with history for context)
-            // ========================================
-            console.log(`[BOT] Routing message with LLM (history: ${history.length} messages)...`);
-            const route = await routeMessage(effectiveMessageText, userId, phoneNumber, process.env.DEEPSEEK_API_KEY, history);
-            console.log(`[BOT] Routed to: ${route.handler}`, route.params);
-
-            // Clear typing indicator
-            try {
-                const chat = await msg.getChat();
-                await chat.clearState();
-            } catch (e) {
-                // ignore
-            }
-
-            // Handle based on route
-            if (route.handler === 'priceApi') {
-                await handlePriceQuery(
-                    msg,
-                    route.params.productName,
-                    route.params.currency,
-                    route.params.phoneNumber || phoneNumber,
-                    process.env.DEEPSEEK_API_KEY,
-                    effectiveMessageText
-                );
-                addMessage(userId, "user", effectiveMessageText);
-                addMessage(userId, "assistant", "[Price Query]");
-                return;
-            }
-
-            if (route.handler === 'storeLocator') {
-                await handleStoreQuery(msg, effectiveMessageText, process.env.DEEPSEEK_API_KEY, route.params, effectiveMessageText);
-                addMessage(userId, "user", effectiveMessageText);
-                addMessage(userId, "assistant", "[Store Query]");
-                return;
-            }
-
-            // Default: General LLM response
-            console.log(`[BOT] Routing to deepseek (general response)`);
-
-            // For image/buttons: use LLM-detected product (intentProduct) only if explicitly detected
-            // If null, don't use history-based product for image/buttons - let generateResponse determine from message
-            const detectedProductForMedia = route.params.intentProduct || null;
-
-            const response = await generateResponse(
-                effectiveMessageText,
-                '',
-                process.env.DEEPSEEK_API_KEY,
-                history,
-                route.params,
-                detectedProductForMedia,  // Use only LLM-detected product, not history fallback
-                imageAnalysisResult       // Pass image analysis result (NEW PARAMETER)
-            );
-
-            const finalReply = response.text || 'I\'m having trouble responding. Please try again or contact support.';
-            const responseImageUrl = response.imageUrl;
-            const productName = response.productName;
-
-            // Update context AFTER response - use the actual product the LLM discussed
-            // This ensures context reflects what the bot actually recommended, not what was detected beforehand
-            if (productName) {
-                updateMentionedProduct(userId, productName);
-                console.log(`[BOT] Context updated to: ${productName}`);
-            }
-
-            await sendLongMessage(msg, finalReply, process.env.DEEPSEEK_API_KEY);
-
-            // Send product image if applicable
-            const imageKeywords = ['image', 'photo', 'picture', 'show', 'send image', 'send photo'];
-            const isImageRequest = imageKeywords.some(k => effectiveMessageText.toLowerCase().includes(k));
-            const shouldSendImage = responseImageUrl && (isImageRequest || !hasProductBeenShown(userId, productName));
-
-            if (shouldSendImage) {
-                console.log(`[BOT] Sending product image for "${productName}"`);
-                try {
-                    const media = await MessageMedia.fromUrl(responseImageUrl, { unsafeMimeType: true });
-                    await msg.reply(media, msg.chatId, { caption: `Here's the image of ${productName}` });
-                    markProductAsShown(userId, productName);
-                } catch (err) {
-                    console.error('[BOT] Failed to send product image:', err.message);
-                }
-            }
-
-            // Send quick action menu (text-based for WhatsApp) if product was mentioned
-            if (productName) {
-                try {
-                    const menuResult = await getQuickActionsText(effectiveMessageText, process.env.DEEPSEEK_API_KEY, productName);
-                    await sendLongMessage(msg, menuResult.text, process.env.DEEPSEEK_API_KEY, 500);
-                } catch (err) {
-                    console.error('[BOT] Failed to send quick action menu:', err.message);
-                }
-            }
-
-            addMessage(userId, "user", effectiveMessageText);
-            addMessage(userId, "assistant", finalReply);
-
-        } catch (err) {
-            console.error('[BOT] Message handling error:', err);
-            try {
-                const chat = await msg.getChat();
-                await chat.clearState();
-            } catch (e) {
-                // ignore
-            }
-            await msg.reply('Something went wrong. Please try again later.');
+        // Skip very short/empty messages
+        if (msgBody.length < 2 && effectiveMessageText.length < 2) {
+            console.log(`[BOT] Message too short, skipping`);
+            return;
         }
+
+        // Queue the message - this handles rapid messages by combining them
+        // and processing sequentially
+        await messageQueue.enqueue(userId, effectiveMessageText, QUEUE_PLATFORM_WHATSAPP, imageAnalysisResult);
     });
 
     client.initialize().catch(err => console.error('[BOT] Init error:', err));
