@@ -108,6 +108,7 @@ const PRODUCT_SLUG_MAP = {
     'Riflex360': 'vitalguard-riflex-360-capsule',
     'Riflex': 'vitalguard-riflex-360-capsule',
     'riflex-360': 'vitalguard-riflex-360-capsule',
+    'RiFlex 360 Capsule': 'vitalguard-riflex-360-capsule',
 
     // Barleygrass
     'Barleygrass': 'organic-volcanic-barley-grass-juice-powder',
