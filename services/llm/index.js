@@ -1,9 +1,10 @@
 // services/llm/index.js
 // LLM Provider Factory
 // Manages provider selection, configuration, and access
-// Currently supports DeepSeek; designed for easy extension to other providers
+// Currently supports DeepSeek and MiniMax
 
 const DeepSeekProvider = require('./deepseekProvider');
+const MiniMaxProvider = require('./minimaxProvider');
 
 // Singleton instance
 let providerInstance = null;
@@ -15,6 +16,12 @@ const DEFAULT_CONFIG = {
         apiKey: process.env.DEEPSEEK_API_KEY,
         model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
         endpoint: process.env.DEEPSEEK_API_ENDPOINT || 'https://api.deepseek.com/v1/chat/completions'
+    },
+    minimax: {
+        apiKey: process.env.MINIMAX_API_KEY,
+        model: process.env.MINIMAX_MODEL || 'MiniMax-M2.7',
+        endpoint: 'https://api.minimax.io/v1/chat/completions',
+        groupId: process.env.MINIMAX_GROUP_ID
     },
     openai: {
         apiKey: process.env.OPENAI_API_KEY,
@@ -46,6 +53,13 @@ function getLLMProvider() {
         case 'deepseek':
             providerInstance = new DeepSeekProvider({
                 apiKey: process.env.DEEPSEEK_API_KEY
+            });
+            break;
+
+        case 'minimax':
+            providerInstance = new MiniMaxProvider({
+                apiKey: process.env.MINIMAX_API_KEY,
+                groupId: process.env.MINIMAX_GROUP_ID
             });
             break;
 
@@ -89,6 +103,8 @@ function isConfigured() {
     switch (providerName) {
         case 'deepseek':
             return !!process.env.DEEPSEEK_API_KEY;
+        case 'minimax':
+            return !!process.env.MINIMAX_API_KEY;
         case 'openai':
             return !!process.env.OPENAI_API_KEY;
         case 'anthropic':
