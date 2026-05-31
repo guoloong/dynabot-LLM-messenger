@@ -322,10 +322,11 @@ async function processQueuedMessage(userId, combinedMessage, messageCount, platf
         };
         await sendLongMessage(mockMsg, finalReply, process.env.DEEPSEEK_API_KEY);
 
-        // Send product image if applicable
+        // Send product image if applicable (skip for B2B retail partnership)
+        const isRetailPartnership = route.params.isRetailPartnership || false;
         const imageKeywords = ['image', 'photo', 'picture', 'show', 'send image', 'send photo'];
         const isImageRequest = imageKeywords.some(k => combinedMessage.toLowerCase().includes(k));
-        const shouldSendImage = responseImageUrl && (isImageRequest || !hasProductBeenShown(userId, productName));
+        const shouldSendImage = responseImageUrl && !isRetailPartnership && (isImageRequest || !hasProductBeenShown(userId, productName));
 
         if (shouldSendImage && productName) {
             console.log(`[WA-QUEUE] Sending product image for "${productName}"`);
@@ -338,8 +339,8 @@ async function processQueuedMessage(userId, combinedMessage, messageCount, platf
             }
         }
 
-        // Send quick action menu if product was mentioned
-        if (productName) {
+        // Send quick action menu if product was mentioned (skip for B2B retail partnership)
+        if (productName && !isRetailPartnership) {
             try {
                 const menuResult = await getQuickActionsText(combinedMessage, process.env.DEEPSEEK_API_KEY, productName);
                 const mockMsgForMenu = {

@@ -159,8 +159,11 @@ class MessengerBot {
             // Send response
             await this.sendLongMessage(senderPsid, finalReply);
 
-            // Send product image if applicable
-            if (responseImageUrl && productName) {
+            // Check if this is a B2B retail partnership query
+            const isRetailPartnership = route.params.isRetailPartnership || false;
+
+            // Send product image if applicable (skip for B2B retail partnership)
+            if (responseImageUrl && productName && !isRetailPartnership) {
                 try {
                     await this.sendImageUrl(senderPsid, responseImageUrl, productName);
                 } catch (err) {
@@ -168,8 +171,8 @@ class MessengerBot {
                 }
             }
 
-            // Send quick action buttons if product was mentioned
-            if (productName) {
+            // Send quick action buttons if product was mentioned (skip for B2B retail partnership)
+            if (productName && !isRetailPartnership) {
                 try {
                     await this.sendQuickReplyButtons(senderPsid, combinedMessage, productName);
                 } catch (err) {
