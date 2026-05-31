@@ -1,11 +1,7 @@
 // index.js
 // Main entry point for Dyna-Nutrition Bot (WhatsApp & Messenger)
 
-// CRITICAL: Load dotenv BEFORE importing any modules that use process.env
 require('dotenv').config({ path: './env' });
-
-// Import LLM provider factory for validation (after dotenv loads)
-const { getStatus, getProviderName } = require('./services/llm');
 const { startHeartbeat } = require('./utils/keepAlive');
 const { initWhatsAppBot } = require('./bot/whatsappBot');
 const { initMessengerBot } = require('./bot/messengerBot');
@@ -18,13 +14,8 @@ const PORT = process.env.PORT || 3000;
 function validateEnv() {
     const errors = [];
 
-    // Validate LLM provider configuration
-    const llmStatus = getStatus();
-    if (!llmStatus.configured) {
-        errors.push(`LLM Provider (${getProviderName()}) API key is missing`);
-    }
-    if (!llmStatus.isValid) {
-        llmStatus.errors.forEach(err => errors.push(err));
+    if (!process.env.DEEPSEEK_API_KEY) {
+        errors.push('DEEPSEEK_API_KEY is missing');
     }
 
     if (PLATFORM === 'messenger') {
@@ -65,14 +56,7 @@ async function main() {
     console.log('===========================================');
     console.log(`[MAIN] Platform: ${PLATFORM.toUpperCase()}`);
     console.log(`[MAIN] Port: ${PORT}`);
-
-    // Show LLM provider status
-    const llmStatus = getStatus();
-    console.log(`[MAIN] LLM Provider: ${llmStatus.provider}`);
-    console.log(`[MAIN] LLM Configured: ${llmStatus.configured ? 'Yes' : 'NO - Missing API key'}`);
-    if (llmStatus.warnings.length > 0) {
-        console.log(`[MAIN] LLM Warnings: ${llmStatus.warnings.join(', ')}`);
-    }
+    console.log(`[MAIN] DeepSeek API: ${process.env.DEEPSEEK_API_KEY ? 'Configured' : 'MISSING'}`);
 
     if (PLATFORM === 'messenger') {
         console.log('[MAIN] Facebook Messenger: Configured');
