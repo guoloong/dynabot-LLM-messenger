@@ -1,15 +1,11 @@
 // services/deepseek.js
 // General LLM response generation using DeepSeek
 // Handles knowledge base queries, web search, and general conversation
-// Refactored to use LLM provider factory for easy LLM switching
 
 const axios = require('axios');
 const { getKnowledge } = require('./knowledgeLoader');
 const { getSupplementaryInfo } = require('../utils/brochures');
 const { searchWebsite, fetchProductPageAndLinks } = require('../config/botConfig');
-
-// Import LLM provider factory
-const { getLLMProvider, extractKeywords, searchInternet: llmSearchInternet } = require('./llm');
 
 // Product slug normalization helper
 const PRODUCT_SLUG_MAP = {
@@ -45,16 +41,39 @@ function getProductSlug(productName) {
         .replace(/[^a-z0-9\-]/g, '');
 }
 
-// Extract keywords using LLM (delegated to LLM provider factory)
+// Extract keywords using LLM
 async function extractKeywordsWithDeepSeek(userMessage, apiKey) {
     console.log(`[DEEPSEEK] Extracting keywords from: "${userMessage}"`);
     if (!apiKey) {
         return userMessage;
     }
 
+    const prompt = `Extract the most important keywords from this user message for a web search.
+Return ONLY the keywords separated by spaces, no punctuation, no extra text.
+Focus on product names, ingredients, health terms, key concepts.
+
+User message: "${userMessage}"
+Keywords:`;
+
     try {
-        // Use LLM provider factory
-        const keywords = await extractKeywords(userMessage);
+        const response = await axios.post(
+            'https://api.deepseek.com/v1/chat/completions',
+            {
+                model: 'deepseek-chat',
+                messages: [
+                    { role: 'system', content: 'You are a keyword extraction tool. Respond only with the keywords.' },
+                    { role: 'user', content: prompt }
+                ],
+                temperature: 0,
+                max_tokens: 50
+            },
+            {
+                headers: { 'Authorization': `Bearer ${apiKey}` },
+                timeout: 10000
+            }
+        );
+
+        const keywords = response.data.choices[0].message.content.trim();
         if (!keywords || keywords.split(/\s+/).length === 0 || keywords.length < 3) {
             return userMessage;
         }
@@ -88,13 +107,20 @@ async function httpGetWithRetry(url, options = {}, maxRetries = 3) {
     throw lastError;
 }
 
-// DuckDuckGo API search (delegated to LLM provider factory)
+// DuckDuckGo API search
 async function searchInternet(query) {
     console.log(`[DEEPSEEK] Internet search: "${query}"`);
     try {
-        // Use LLM provider factory
-        const results = await llmSearchInternet(query);
-        return results;
+        const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
+        const { data } = await httpGetWithRetry(url);
+        let text = data.AbstractText || '';
+        if (data.RelatedTopics) {
+            const firstTopics = data.RelatedTopics.slice(0, 3)
+                .map(t => t.Text || '')
+                .join(' ');
+            text = (text + ' ' + firstTopics).trim();
+        }
+        return text.length > 50 ? text : null;
     } catch (err) {
         console.error('[DEEPSEEK] Internet search error:', err.message);
         return null;
@@ -243,7 +269,7 @@ function buildGuidelinesPrompt(guidelines) {
 // Build knowledge prompt
 function buildKnowledgePrompt(detectedProduct = null, routeParams = {}) {
     const kb = getKnowledge();
-    let prompt = `You are Sandra, the friendly AI nutrition and health expert for Dynamic Nutrition.
+    let prompt = `You are DynaBot, the friendly AI nutrition and health expert for Dynamic Nutrition.
 
 **CRITICAL INSTRUCTION - ANSWER PRIORITY ORDER:**
 1. FIRST: Check if the user's question matches any "Common Questions" → Use the information from the EXACT answer (you may rephrase in your friendly, professional tone)
@@ -255,7 +281,7 @@ function buildKnowledgePrompt(detectedProduct = null, routeParams = {}) {
 - ALWAYS prioritize information from the Q&A section - use the ANSWER CONTENT, but you may rephrase in your friendly, professional tone as defined in the guidelines
 - NEVER add warnings, contra-indications, or medical advice that is not in the provided information
 - NEVER contradict what is stated in the official Q&A or product information
-- Stay in character as Sandra with a friendly, helpful tone
+- Stay in character as DynaBot with a friendly, helpful tone
 
 **OUTPUT FORMAT (CRITICAL):**
 - Use PLAIN TEXT ONLY - do NOT use any markdown formatting
@@ -413,12 +439,13 @@ async function callDeepSeek(messages, apiKey) {
         return null;
     }
     try {
-        // Use LLM provider factory for chat
-        const llm = getLLMProvider();
-        const content = await llm.chat(messages, {
+        const response = await axios.post('https://api.deepseek.com/v1/chat/completions', {
+            model: "deepseek-chat",
+            messages,
             temperature: 0.2,
             max_tokens: 500
-        });
+        }, { headers: { 'Authorization': `Bearer ${apiKey}` }, timeout: 20000 });
+        const content = response.data.choices[0].message.content;
         return content;
     } catch (err) {
         console.error('[DEEPSEEK] API error:', err.message);
@@ -585,7 +612,7 @@ async function generateResponse(userMessage, _, apiKey, history = [], routeParam
         console.log(`[DEEPSEEK] [TIER 2] Searching website: dyna-nutrition.com`);
         const siteResults = await searchWebsite(searchQuery);
         if (siteResults && siteResults.length > 100) {
-            const tier2Prompt = `You are Sandra. Answer the user based ONLY on the search results below. Start with YES/NO and one sentence.\nUSER: ${userMessage}\nRESULTS: ${siteResults.substring(0, 2000)}`;
+            const tier2Prompt = `You are DynaBot. Answer the user based ONLY on the search results below. Start with YES/NO and one sentence.\nUSER: ${userMessage}\nRESULTS: ${siteResults.substring(0, 2000)}`;
             const tier2Messages = [
                 { role: "system", content: tier2Prompt },
                 ...history.slice(-6),
@@ -603,7 +630,7 @@ async function generateResponse(userMessage, _, apiKey, history = [], routeParam
         console.log(`[DEEPSEEK] [TIER 3] Searching internet via DuckDuckGo...`);
         const internetResults = await searchInternet(searchQuery);
         if (internetResults) {
-            const tier3Prompt = `You are Sandra. Answer the user based on these internet search results.\nUSER: ${userMessage}\nRESULTS: ${internetResults}`;
+            const tier3Prompt = `You are DynaBot. Answer the user based on these internet search results.\nUSER: ${userMessage}\nRESULTS: ${internetResults}`;
             const tier3Messages = [
                 { role: "system", content: tier3Prompt },
                 ...history.slice(-6),

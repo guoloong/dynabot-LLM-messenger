@@ -1,13 +1,9 @@
 // services/messageRouter.js
 // LLM-based message routing - determines intent and routes to appropriate handler
 // Routes: price (priceApi), store (storeLocator), or general (deepseek)
-// Refactored to use LLM provider factory for easy LLM switching
 
 const axios = require('axios');
 const { getContext, updatePriceContext, updateStoreContext, updateMentionedProduct, clearPriceContext, clearStoreContext } = require('./contextManager');
-
-// Import LLM provider factory
-const { getLLMProvider } = require('./llm');
 
 // Configuration
 const MAX_HISTORY_MESSAGES = 20;
@@ -43,7 +39,6 @@ function buildConversationContext(history, maxMessages = MAX_HISTORY_MESSAGES) {
 /**
  * Use LLM to analyze user message and determine intent
  * Now includes conversation history for better context understanding
- * Refactored to use LLM provider factory
  */
 async function analyzeIntent(userMessage, userId, phoneNumber, apiKey, history = []) {
     console.log(`[ROUTER] Analyzing intent for: "${userMessage}"`);
@@ -54,24 +49,20 @@ async function analyzeIntent(userMessage, userId, phoneNumber, apiKey, history =
         return fallbackIntentDetection(userMessage, history);
     }
 
-    try {
-        // Use LLM provider factory instead of direct axios call
-        const llm = getLLMProvider();
+    // Build conversation context
+    const conversationContext = buildConversationContext(history, 10);
 
-        // Build conversation context
-        const conversationContext = buildConversationContext(history, 10);
+    // Get context for follow-up handling
+    const ctx = getContext(userId);
 
-        // Get context for follow-up handling
-        const ctx = getContext(userId);
-
-        const contextInfo = ctx ? `
+    const contextInfo = ctx ? `
 EXISTING CONTEXT (use when current message is a follow-up):
 - Last product user asked about for price: ${ctx.lastPriceProduct || 'none'}
 - Last currency used: ${ctx.lastPriceCurrency || 'none'}
 - Last product user mentioned: ${ctx.lastMentionedProduct || 'none'}
 - Pending store product: ${ctx.pendingStoreProduct || 'none'}` : '';
 
-        const prompt = `Analyze this user message for a WhatsApp health products chatbot.
+    const prompt = `Analyze this user message for a WhatsApp health products chatbot.
 
 ${conversationContext ? `CONVERSATION HISTORY (last ${Math.min(history.length, 10)} messages):
 ${conversationContext}
@@ -164,15 +155,30 @@ PRODUCT DETECTION (important!):
 User message: "${userMessage}"
 Response:`;
 
-        // Use LLM provider factory for chat
-        const content = await llm.chat([
-            { role: 'system', content: 'You are a JSON parser. Return ONLY valid JSON, no markdown, no explanation.' },
-            { role: 'user', content: prompt }
-        ], {
-            temperature: 0,
-            max_tokens: 300,
-            timeout: 15000
-        });
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+        const response = await axios.post(
+            'https://api.deepseek.com/v1/chat/completions',
+            {
+                model: 'deepseek-chat',
+                messages: [
+                    { role: 'system', content: 'You are a JSON parser. Return ONLY valid JSON, no markdown, no explanation.' },
+                    { role: 'user', content: prompt }
+                ],
+                temperature: 0,
+                max_tokens: 300
+            },
+            {
+                headers: { 'Authorization': `Bearer ${apiKey}` },
+                signal: controller.signal,
+                timeout: 20000
+            }
+        );
+
+        clearTimeout(timeoutId);
+        const content = response.data.choices[0].message.content.trim();
 
         // Parse JSON
         let jsonStr = content.replace(/```json\n?|```\n?/gi, '').trim();
