@@ -256,6 +256,7 @@ function buildGuidelinesPrompt(guidelines) {
     if (guidelines.payment) text += `PAYMENT GUIDELINES:\n${guidelines.payment}\n\n`;
     if (guidelines.returns) text += `RETURNS GUIDELINES:\n${guidelines.returns}\n\n`;
     if (guidelines.answer_presentation) text += `ANSWER PRESENTATION GUIDELINES:\n${guidelines.answer_presentation}\n\n`;
+    if (guidelines.retail_partnership) text += `RETAIL PARTNERSHIP GUIDELINES:\n${guidelines.retail_partnership}\n\n`;
 
     // Add acknowledgment handling
     text += `ACKNOWLEDGMENT HANDLING:

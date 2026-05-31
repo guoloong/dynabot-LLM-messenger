@@ -66,7 +66,8 @@ function loadKnowledge() {
             products,
             general: mainData.general || {},
             guidelines: guidelines || {},
-            ecommerceStores: mainData.ecommerceStores || {}
+            ecommerceStores: mainData.ecommerceStores || {},
+            router_instructions: mainData.router_instructions || {}
         };
 
         mainFileMtime = fileMtime(MAIN_KB_FILE);

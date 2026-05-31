@@ -4,6 +4,7 @@
 
 const axios = require('axios');
 const { getContext, updatePriceContext, updateStoreContext, updateMentionedProduct, clearPriceContext, clearStoreContext } = require('./contextManager');
+const { getKnowledge } = require('./knowledgeLoader');
 
 // Configuration
 const MAX_HISTORY_MESSAGES = 20;
@@ -54,6 +55,7 @@ async function analyzeIntent(userMessage, userId, phoneNumber, apiKey, history =
 
     // Get context for follow-up handling
     const ctx = getContext(userId);
+    const kb = getKnowledge();
 
     const contextInfo = ctx ? `
 EXISTING CONTEXT (use when current message is a follow-up):
@@ -81,6 +83,7 @@ Return ONLY a JSON object with this exact format:
     "currency": "SGD" | "MYR" | "IDR" | "THB" | "PHP" | "VND" | null,
     "location": "location name or null",
     "needsMoreInfo": true | false,
+    "isRetailPartnership": true | false,
     "reasoning": "brief explanation"
 }
 
@@ -122,6 +125,32 @@ RETAIL STORE EXAMPLES (route to "store"):
 - "Watsons near PJ"
 - "Caring pharmacy Shah Alam"
 - "Is it available at Guardian?"
+- "Do you have this at [specific pharmacy chain]?"
+
+${kb.guidelines?.retail_partnership || 'B2B / RETAIL PARTNERSHIP: Route to general intent when user is asking about becoming a supplier, distributor, stockist, or indicates they represent a business (e.g., pharmacy, organic shop, retailer).'}
+
+**RETAIL PARTNERSHIP DETECTION (set isRetailPartnership=true when):
+- User says "I'm from [store] pharmacy", "I am from [company] shop", "We are a [type] store"
+- User asks "do you supply to pharmacies?", "do you supply to retail shops?", "can I distribute your products?"
+- User says "I want to be a stockist", "I want to be a distributor", "can I be a reseller"
+- User mentions "wholesale price" or "bulk purchase" for their store/business
+- User explicitly says "for my store", "for our pharmacy", "for our business"
+- User asks "do you wholesale?" or "do you sell in bulk?"
+
+**EXAMPLES where isRetailPartnership should be TRUE:
+- "I'm from AA pharmacy, can I check wholesale price?" → isRetailPartnership: true
+- "Do you supply to organic shops?" → isRetailPartnership: true
+- "Can I be a stockist for your products?" → isRetailPartnership: true
+- "We are a pharmacy, can we stock your supplements?" → isRetailPartnership: true
+
+**EXAMPLES where isRetailPartnership should be FALSE:
+- "How much is BioNatto?" (individual asking about price) → isRetailPartnership: false
+- "Where can I buy near JB?" (customer asking for store location) → isRetailPartnership: false
+- "Is this on Shopee?" (customer asking about marketplace) → isRetailPartnership: false
+
+When isRetailPartnership is true AND intent is "price":
+→ Override intent to "general" (do NOT route to priceApi)
+→ Set isRetailPartnership: true so the response asks for store name, contact person and contact number
 
 FOLLOW-UP HANDLING:
 - If user says "Price?" or "how much?" and they mentioned a product in history → use that product
@@ -184,15 +213,27 @@ Response:`;
         let jsonStr = content.replace(/```json\n?|```\n?/gi, '').trim();
         const result = JSON.parse(jsonStr);
 
-        console.log(`[ROUTER] LLM detected: intent=${result.intent}, product=${result.product}, currency=${result.currency}, location=${result.location}`);
+        // Get isRetailPartnership from LLM response (not from regex)
+        const isRetailPartnership = result.isRetailPartnership || false;
+
+        console.log(`[ROUTER] LLM detected: intent=${result.intent}, product=${result.product}, currency=${result.currency}, location=${result.location}, isRetailPartnership=${isRetailPartnership}`);
+
+        // Override intent to 'general' when B2B/Retail Partnership is detected
+        // This ensures it goes to deepseek handler, not priceApi
+        let finalIntent = result.intent || 'general';
+        if (isRetailPartnership && finalIntent === 'price') {
+            console.log('[ROUTER] B2B detected, overriding intent from price to general');
+            finalIntent = 'general';
+        }
 
         return {
-            intent: result.intent || 'general',
+            intent: finalIntent,
             product: result.product || null,
             currency: result.currency || null,
             location: result.location || null,
             needsMoreInfo: result.needsMoreInfo || false,
-            reasoning: result.reasoning || ''
+            reasoning: result.reasoning || '',
+            isRetailPartnership: isRetailPartnership
         };
 
     } catch (err) {
@@ -330,7 +371,8 @@ function fallbackIntentDetection(userMessage, history = []) {
         currency,
         location,
         needsMoreInfo: false,
-        reasoning: 'fallback'
+        reasoning: 'fallback',
+        isRetailPartnership: false  // Fallback doesn't do B2B detection - rely on LLM
     };
 }
 
@@ -621,11 +663,13 @@ async function routeMessage(userMessage, userId, phoneNumber, apiKey, history = 
     // Determine product for context - use LLM-detected product first, then text extraction, then history
     const mentionedProduct = intent.product || extractProductFromText(userMessage) || findProductInHistory(history);
 
+    // Pass isRetailPartnership flag to deepseek for B2B queries
     return {
         handler: 'deepseek',
         params: {
             productName: mentionedProduct || null,  // For DeepSeek context (can include history)
-            intentProduct: intent.product || null    // LLM-detected product only (no history fallback)
+            intentProduct: intent.product || null,    // LLM-detected product only (no history fallback)
+            isRetailPartnership: intent.isRetailPartnership || false  // Flag to suppress product image and quick replies
         }
     };
 }
